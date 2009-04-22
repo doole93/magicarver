@@ -1,0 +1,64 @@
+﻿<Window x:Class="MagiCarver.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeToContent="WidthAndHeight" Loaded="Window_Loaded" ResizeMode="NoResize">
+    
+    <!-- Need to allow user to resize window -->
+    
+    <DockPanel x:Name="stackPanel">
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open Image" Click="OpenFile_Clicked"/>
+                <MenuItem x:Name="menuItemSaveImage" Header="_Save Image" IsEnabled="False" Click="SaveImage_Click"/>
+                <MenuItem Header="_Exit" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Direction">
+                    <MenuItem Header="_Vertical" IsCheckable="True" Tag="0" Click="ChangeDirection_Clicked"></MenuItem>
+                    <MenuItem Header="_Horizontal" IsCheckable="True" Tag="1" Click="ChangeDirection_Clicked"></MenuItem>
+                    <MenuItem Header="_Optimal" IsChecked="True" IsCheckable="True" Tag="2" Click="ChangeDirection_Clicked"></MenuItem>
+                </MenuItem>
+                <MenuItem x:Name="menuItemPaintSeam" Header="_Paint Seam" IsCheckable="True" IsChecked="True" Click="PaintSeam_Clicked"/>
+                <MenuItem x:Name="menuItemCarve" Header="_Carve Seam" FontWeight="bold" IsEnabled="False" Click="Carve_Clicked"/>
+                <MenuItem x:Name="menuItemAddSeam" Header="_Add Seam" FontWeight="bold" IsEnabled="False" Click="AddSeam_Clicked"/>
+                </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="menuItemEnergyMap" Header="_Energy Map" IsCheckable="True" IsEnabled="False" Click="ViewEnergyMap_Clicked"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem x:Name="menuItemAbout" Header="_About" Click="About_Clicked"/>
+            </MenuItem>
+        </Menu>
+        <ToolBar DockPanel.Dock="Top">
+            
+        </ToolBar>
+        <Grid DockPanel.Dock="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <ScrollViewer Loaded="ScrollViewer_Loaded" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <InkCanvas IsEnabled="false" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
+                    <InkCanvas.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
+                        </ContextMenu>
+                    </InkCanvas.ContextMenu>
+                    <Image x:Name="theImage"/>
+                </InkCanvas>
+            </ScrollViewer>
+            <Border Grid.Column="1">
+
+            </Border>
+        </Grid>
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock x:Name="txtStatus" Text="Ready"></TextBlock>
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock x:Name="txtResolution" Text="No image loaded"></TextBlock>
+            </StatusBarItem>
+        </StatusBar>
+    </DockPanel>
+</Window>
