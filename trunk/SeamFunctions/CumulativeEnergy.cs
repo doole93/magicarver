@@ -4,6 +4,13 @@ using System.ComponentModel;
 using MagiCarver.EnergyFunctions;
 using System.Drawing;
 
+/*
+ * 
+ * ShiftPixels has to be per list of seams, and not per seams.
+ * The same goes for the local updates...
+ * 
+ * */
+
 namespace MagiCarver.SeamFunctions
 {
     public class CumulativeEnergy
@@ -15,6 +22,9 @@ namespace MagiCarver.SeamFunctions
 
         private bool[,] VerticalCumulativeEnergyMapUsed { get; set; }
         private bool[,] HorizontalCumulativeEnergyMapUsed { get; set; }
+
+				private bool[,] VerticalCumulativeEnergyMapErrors { get; set; }
+				private bool[,] HorizontalCumulativeEnergyMapErrors { get; set; }
 
         private List<KeyValuePair<Point, double>> LowestVerticalSeamsEnergy;
         private List<KeyValuePair<Point, double>> LowestHorizontalSeamsEnergy;
@@ -30,6 +40,7 @@ namespace MagiCarver.SeamFunctions
             {
                 VerticalCumulativeEnergyMap = new int[size.Width, size.Height];
                 VerticalCumulativeEnergyMapUsed = new bool[size.Width, size.Height];
+								VerticalCumulativeEnergyMapErrors = new bool[size.Width, size.Height];
                 LowestVerticalSeamsEnergy = new List<KeyValuePair<Point, double>>();
                 endOffset = size.Width - 1;
             }
@@ -37,6 +48,7 @@ namespace MagiCarver.SeamFunctions
             {
                 HorizontalCumulativeEnergyMap = new int[size.Width, size.Height];
                 HorizontalCumulativeEnergyMapUsed = new bool[size.Width, size.Height];
+								HorizontalCumulativeEnergyMapErrors = new bool[size.Width, size.Height];
                 LowestHorizontalSeamsEnergy = new List<KeyValuePair<Point, double>>();
                 endOffset = size.Height - 1;
             }
@@ -263,8 +275,26 @@ namespace MagiCarver.SeamFunctions
         private int GetCumulativeEnergy(Constants.Direction direction, int x, int y, Size size)
         {
             if ((Utilities.InBounds(x, y, size) && (!GetUsedPixel(direction, x, y))))
-            {   
-                return direction == Constants.Direction.VERTICAL ? VerticalCumulativeEnergyMap[x, y] : HorizontalCumulativeEnergyMap[x, y];
+            {
+            	switch (direction)
+            	{
+            		case Constants.Direction.VERTICAL:
+									if (VerticalCumulativeEnergyMapErrors[x, y])
+									{
+										return int.MaxValue;
+									}
+            			return VerticalCumulativeEnergyMap[x, y];
+            		case Constants.Direction.HORIZONTAL:
+									if (HorizontalCumulativeEnergyMapErrors[x, y])
+									{
+										return int.MaxValue;
+									}
+            			return HorizontalCumulativeEnergyMap[x, y];
+            		case Constants.Direction.OPTIMAL:
+            			break;
+            		default:
+            			throw new ArgumentOutOfRangeException("direction");
+            	}
             }
 
             return int.MaxValue;
@@ -294,9 +324,9 @@ namespace MagiCarver.SeamFunctions
             }
         }
 
-        public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k)
+        public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, ref int k)
         {
-            if ((k >= size.Width) && (k > size.Height))
+            if ((k >= size.Width) && (k >= size.Height))
             {
                 throw new ArgumentOutOfRangeException("k too big");
             }
@@ -327,7 +357,23 @@ namespace MagiCarver.SeamFunctions
 
             List<KeyValuePair<Point, double>> lowestSeamsEnergy = (direction == Constants.Direction.VERTICAL ? LowestVerticalSeamsEnergy : LowestHorizontalSeamsEnergy);
 
-            Seam seam = BuildSeam(direction, lowestSeamsEnergy[k].Key.X, lowestSeamsEnergy[k].Key.Y, size);
+        	Seam seam = null;
+
+        	k--;
+
+					while (seam == null)
+					{
+						k++;
+
+						if ((k >= size.Width) && (k >= size.Height))
+						{
+							throw new ArgumentOutOfRangeException("k too big");
+						}
+
+						seam = BuildSeam(direction, lowestSeamsEnergy[k].Key.X, lowestSeamsEnergy[k].Key.Y, size);
+					}
+
+
 
             seam.SeamValue = lowestSeamsEnergy[k].Value;
 
@@ -355,10 +401,12 @@ namespace MagiCarver.SeamFunctions
                             };
 
             int pixelIndex = pixelCount - 1;
+
             while (pixelIndex > 0)
             {
                 int e0 = 0, e1 = 0, e2 = 0;
                 Point e0p = new Point(), e1p = new Point(), e2p = new Point();
+								bool revert = false;
 
                 if (direction == Constants.Direction.VERTICAL)
                 {
@@ -379,105 +427,201 @@ namespace MagiCarver.SeamFunctions
                     e2p = new Point(x - 1, y + 1);
                 }
 
-                if (e0 < e1)
-                {
-                    if (e0 < e2)
-                    {
-                        if (direction == Constants.Direction.VERTICAL)
-                        {
-                            x--;
-                            if (x < 0)
-                            {
-                                x = 0;
-                            }
-                            else
-                            {
-                                seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
-                            }
-                        }
-                        else if (direction == Constants.Direction.HORIZONTAL)
-                        {
-                            y--;
-                            if (y < 0)
-                            {
-                                y = 0;
-                            }
-                            else
-                            {
-                                seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-                            }
-                        }
+							if ((e0 == e1) && (e1 == e2) && (e2 == int.MaxValue))
+							{
+								switch(direction)
+								{
+									case Constants.Direction.VERTICAL:
+										VerticalCumulativeEnergyMapErrors[x, y] = true;
+										VerticalCumulativeEnergyMapUsed[x, y] = false;
 
-                        SetUsedPixel(direction, e0p.X, e0p.Y, size);
-                    }
-                    else
-                    {
-                        if (direction == Constants.Direction.VERTICAL)
-                        {
-                            x++;
-                            if (x > size.Width - 1)
-                            {
-                                x = size.Width - 1;
-                            }
-                            else
-                            {
-                                seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-                            }
-                        }
-                        else if (direction == Constants.Direction.HORIZONTAL)
-                        {
-                            y++;
-                            if (y > size.Height - 1)
-                            {
-                                y = size.Height - 1;
-                            }
-                            else
-                            {
-                                seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
-                            }
-                        }
-                        SetUsedPixel(direction, e2p.X, e2p.Y, size);
-                    }
-                }
-                else
-                {
-                    if (!(e1 < e2))
-                    {
-                        if (direction == Constants.Direction.VERTICAL)
-                        {
-                            x++;
-                            if (x > size.Width - 1)
-                            {
-                                x = size.Width - 1;
-                            }
-                            else
-                            {
-                                seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-                            }
-                        }
-                        else if (direction == Constants.Direction.HORIZONTAL)
-                        {
-                            y++;
-                            if (y > size.Height - 1)
-                            {
-                                y = size.Height - 1;
-                            }
-                            else
-                            {
-                                seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
-                            }
-                        }
-                        SetUsedPixel(direction, e2p.X, e2p.Y, size);
-                    }else
-                    {
-                        SetUsedPixel(direction, e1p.X, e1p.Y, size);
-                    }
-                }
+										if (pixelIndex == pixelCount - 1)
+										{
+											return null;
+										}
 
-                x -= xInc;
-                y -= yInc;
+										switch (seam.PixelDirections[pixelIndex + 1])
+										{
+											case Constants.SeamPixelDirection.STRAIGHT:
+												break;
+											case Constants.SeamPixelDirection.LEFT:
+												x++;
+												if (x >= size.Width)
+												{
+													x = size.Width - 1;
+												}
+												break;
+											case Constants.SeamPixelDirection.RIGHT:
+												x--;
+												if (x < 0)
+												{
+													x = 0;
+												}
+												break;
+											default:
+												throw new ArgumentOutOfRangeException();
+										}
+										y++;
+										if (y >= size.Height)
+										{
+											y = size.Height - 1;
+										}
+										break;
+									case Constants.Direction.HORIZONTAL:
+										HorizontalCumulativeEnergyMapErrors[x, y] = true;
+										HorizontalCumulativeEnergyMapUsed[x, y] = false;
 
-                pixelIndex--;
+										if (pixelIndex == pixelCount - 1)
+										{
+											return null;
+										}
+
+										switch (seam.PixelDirections[pixelIndex + 1])
+										{
+											case Constants.SeamPixelDirection.STRAIGHT:
+												break;
+											case Constants.SeamPixelDirection.LEFT:
+												y--;
+												if (y < 0)
+												{
+													y = 0;
+												}
+												break;
+											case Constants.SeamPixelDirection.RIGHT:
+												y++;
+												if (y >= size.Height)
+												{
+													y = size.Height - 1;
+												}
+												break;
+											default:
+												throw new ArgumentOutOfRangeException();
+										}
+										x++;
+										if (x >= size.Width)
+										{
+											x = size.Width;
+										}
+										break;
+									case Constants.Direction.OPTIMAL:
+										break;
+									default:
+										throw new ArgumentOutOfRangeException("direction");
+								}
+
+								revert = true;
+							}
+
+
+
+
+
+							if (!revert)
+							{
+
+								if (e0 < e1)
+								{
+									if (e0 < e2)
+									{
+										if (direction == Constants.Direction.VERTICAL)
+										{
+											x--;
+											if (x < 0)
+											{
+												x = 0;
+											}
+											else
+											{
+												seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
+											}
+										}
+										else if (direction == Constants.Direction.HORIZONTAL)
+										{
+											y--;
+											if (y < 0)
+											{
+												y = 0;
+											}
+											else
+											{
+												seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
+											}
+										}
+										SetUsedPixel(direction, e0p.X, e0p.Y, size);
+									}
+									else
+									{
+										if (direction == Constants.Direction.VERTICAL)
+										{
+											x++;
+											if (x > size.Width - 1)
+											{
+												x = size.Width - 1;
+											}
+											else
+											{
+												seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
+											}
+										}
+										else if (direction == Constants.Direction.HORIZONTAL)
+										{
+											y++;
+											if (y > size.Height - 1)
+											{
+												y = size.Height - 1;
+											}
+											else
+											{
+												seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
+											}
+										}
+										SetUsedPixel(direction, e2p.X, e2p.Y, size);
+									}
+								}
+								else
+								{
+									if (!(e1 < e2))
+									{
+										if (direction == Constants.Direction.VERTICAL)
+										{
+											x++;
+											if (x > size.Width - 1)
+											{
+												x = size.Width - 1;
+											}
+											else
+											{
+												seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
+											}
+										}
+										else if (direction == Constants.Direction.HORIZONTAL)
+										{
+											y++;
+											if (y > size.Height - 1)
+											{
+												y = size.Height - 1;
+											}
+											else
+											{
+												seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
+											}
+										}
+										SetUsedPixel(direction, e2p.X, e2p.Y, size);
+									}
+									else
+									{
+										SetUsedPixel(direction, e1p.X, e1p.Y, size);
+									}
+								}
+
+								x -= xInc;
+								y -= yInc;
+
+								pixelIndex--;
+							}else
+							{
+								pixelIndex++;
+							}
             }
 
             seam.Direction = direction;

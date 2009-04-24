@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.Drawing;
+using System.Threading;
 using MagiCarver.EnergyFunctions;
 using MagiCarver.SeamFunctions;
 
@@ -165,7 +166,7 @@ namespace MagiCarver
                 toIndex = m_CurrentHeight;
             }
 
-            Utilities.ShiftArray(m_EnergyFunction.EnergyMap, direction, offset, fromIndex, toIndex, byte.MaxValue);
+            //Utilities.ShiftArray(m_EnergyFunction.EnergyMap, direction, offset, fromIndex, toIndex, byte.MaxValue);
 
         }
 
@@ -186,12 +187,17 @@ namespace MagiCarver
                 Seam currentLowestEnergySeam;
                 if (direction == Constants.Direction.VERTICAL || direction == Constants.Direction.HORIZONTAL)
                 {
-                    currentLowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, i);
+                	int oldi = i;
+                    currentLowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, ref i);
+
+                	k += (i - oldi);
+
+										
                 }
                 else
                 {
-                    Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, i);
-                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, i);
+                    Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, ref i);
+                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, ref i);
 
                     currentLowestEnergySeam = isLowest1.SeamValue < isLowest2.SeamValue ? isLowest1 : isLowest2;
                 }
@@ -267,10 +273,15 @@ namespace MagiCarver
                 seamsForRemoval.Add(currentLowestEnergySeam);
             }
 
-            foreach (Seam seam in seamsForRemoval)
-            {
-                CarveSeam(seam);
-            }
+					Thread.Sleep(3000);
+
+        	int x = 0;
+
+						//foreach (Seam seam in seamsForRemoval)
+						//{
+						//  seam.StartIndex -= x++;
+						//    CarveSeam(seam);
+						//}
 
             OnImageChanged();
 
@@ -324,12 +335,14 @@ namespace MagiCarver
 
                 if (direction == Constants.Direction.VERTICAL || direction == Constants.Direction.HORIZONTAL)
                 {
-                    lowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, 1);
+                	int i = 1;
+                	lowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, ref i);
                 }
                 else
                 {
-                    Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, 1);
-                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, 1);
+                	int i = 1;
+                	Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, ref i);
+                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, ref i);
 
                     lowestEnergySeam = isLowest1.SeamValue < isLowest2.SeamValue ? isLowest1 : isLowest2;
                 }
