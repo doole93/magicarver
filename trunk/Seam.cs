@@ -13,7 +13,7 @@ namespace MagiCarver
 
         public double SeamValue { get; set; }
 
-        public IEnumerable<Point>		PixelLocations(Size size)
+        public IEnumerable<Point> PixelLocations(Size size)
         {
             int x = 0, y = 0, xInc = 0, yInc = 0, currentIndex = 0;
 

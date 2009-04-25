@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -23,12 +24,15 @@ namespace MagiCarver
         private bool ViewEvergyMap { get; set; }
         private bool m_PaintSeam { get; set; }
         private Constants.Direction m_Direction { get; set; }
+        private double baseHeight;
 
         private delegate void VoidDelegate();
 
         public MainWindow()
         {
             InitializeComponent();
+
+            baseHeight = Height - ((Grid) theCanvas.Parent).Height;
         }
 
         private void OpenFile_Clicked(object sender, RoutedEventArgs e)
@@ -102,6 +106,8 @@ namespace MagiCarver
                              Bitmap bitmap = ViewEvergyMap ? m_SeamImage.EnergyMapBitmap : m_SeamImage. Bitmap;
 
                              SetImageSource(bitmap);
+
+                            
                         });   
         }
 
@@ -117,6 +123,10 @@ namespace MagiCarver
             Size size = m_SeamImage.ImageSize;
 
             txtResolution.Text = size.Width + " x " + size.Height;
+
+            Width = bitmap.Width;
+            Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
+
         }
 
         private void InkCanvas_Initialized(object sender, EventArgs e)
@@ -160,12 +170,6 @@ namespace MagiCarver
             {
                 Utilities.ExportToPng(new Uri(saveFile.FileName, UriKind.Absolute), theImage);
             }
-        }
-
-        private void ScrollViewer_Loaded(object sender, RoutedEventArgs e)
-        {
-            ((ScrollViewer)sender).MaxHeight = SystemParameters.WorkArea.Size.Height * Constants.PERCANTAGE_OF_SCREEN_HEIGHT;
-            ((ScrollViewer)sender).MaxWidth = SystemParameters.WorkArea.Size.Width * Constants.PERCANTAGE_OF_SCREEN_WIDTH;
         }
 
         private void Carve_Clicked(object sender, RoutedEventArgs e)
@@ -224,5 +228,13 @@ namespace MagiCarver
 
             t1.Start();
         }
+
+        private void RowDefinition_Loaded(object sender, RoutedEventArgs e)
+        {
+            RowDefinition rowDefinition = ((RowDefinition) sender);
+
+            rowDefinition.MaxHeight = rowDefinition.ActualHeight;
+            rowDefinition.MinHeight = rowDefinition.ActualHeight;
+        }   
     }
 }
