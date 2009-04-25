@@ -10,15 +10,18 @@ namespace MagiCarver
 {
     public class SeamImage
     {
-        private Bitmap           m_Bitmap          { get; set; }
-        private Bitmap           m_EnergyMapBitmap { get; set; }
-        private BitmapData       m_BitmapData      { get; set; }
+        private Bitmap           m_Bitmap               { get; set; }
+        private Bitmap           m_EnergyMapBitmap      { get; set; }
+        private BitmapData       m_BitmapData           { get; set; }
 
-        private int              m_CurrentWidth    { get; set; }
-        private int              m_CurrentHeight   { get; set; }
+        private Bitmap           m_HorizontalIndexMap   { get; set; }
+        private Bitmap           m_VerticalIndexMap     { get; set; }
 
-        private EnergyFunction   m_EnergyFunction  { get; set; }
-        private CumulativeEnergy m_SeamFunction    { get; set; }
+        private int              m_CurrentWidth         { get; set; }
+        private int              m_CurrentHeight        { get; set; }
+
+        private EnergyFunction   m_EnergyFunction       { get; set; }
+        private CumulativeEnergy m_SeamFunction         { get; set; }
 
         public event EventHandler ImageChanged;
         public event EventHandler OperationCompleted;
@@ -31,6 +34,9 @@ namespace MagiCarver
             m_SeamFunction = new CumulativeEnergy {EnergyFunction = m_EnergyFunction};
 
             Bitmap = bitmap;
+
+            m_HorizontalIndexMap = new Bitmap(ImageSize.Width, ImageSize.Height);
+            m_VerticalIndexMap = new Bitmap(ImageSize.Width, ImageSize.Height);
         }
 
         public Size ImageSize
@@ -180,6 +186,24 @@ namespace MagiCarver
             m_BitmapData = m_Bitmap.LockBits(new Rectangle(0, 0, m_Bitmap.Width, m_Bitmap.Height),
             ImageLockMode.ReadWrite, m_Bitmap.PixelFormat);
 
+            BitmapData indexMapBmd;
+
+            switch (direction)
+            {
+                case Constants.Direction.VERTICAL:
+                    indexMapBmd = m_VerticalIndexMap.LockBits(new Rectangle(0, 0, m_VerticalIndexMap.Width, m_VerticalIndexMap.Height),
+ImageLockMode.ReadWrite, m_VerticalIndexMap.PixelFormat);
+                    break;
+                case Constants.Direction.HORIZONTAL:
+                    indexMapBmd = m_HorizontalIndexMap.LockBits(new Rectangle(0, 0, m_HorizontalIndexMap.Width, m_HorizontalIndexMap.Height),
+    ImageLockMode.ReadWrite, m_HorizontalIndexMap.PixelFormat);
+                    break;
+                case Constants.Direction.OPTIMAL:
+                default:
+                    throw new ArgumentOutOfRangeException("direction");
+            }
+
+
             List<Seam> seams = new List<Seam>();
 
             for (int i = 0; i < k; ++i)
@@ -187,12 +211,12 @@ namespace MagiCarver
                 Seam currentLowestEnergySeam;
                 if (direction == Constants.Direction.VERTICAL || direction == Constants.Direction.HORIZONTAL)
                 {
-                    currentLowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, i);								
+                    currentLowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, i, indexMapBmd);								
                 }
                 else
                 {
-                    Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, i);
-                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, i);
+                    Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, i, indexMapBmd);
+                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, i, indexMapBmd);
 
                     currentLowestEnergySeam = isLowest1.SeamValue < isLowest2.SeamValue ? isLowest1 : isLowest2;
                 }
@@ -201,6 +225,20 @@ namespace MagiCarver
             }
 
             m_Bitmap.UnlockBits(m_BitmapData);
+
+            switch (direction)
+            {
+                case Constants.Direction.VERTICAL:
+                    m_VerticalIndexMap.UnlockBits(indexMapBmd);
+                    break;
+                case Constants.Direction.HORIZONTAL:
+                    m_HorizontalIndexMap.UnlockBits(indexMapBmd);
+                    break;
+                case Constants.Direction.OPTIMAL:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("direction");
+            }
 
             return seams;
         }
@@ -268,15 +306,15 @@ namespace MagiCarver
                 seamsForRemoval.Add(currentLowestEnergySeam);
             }
 
-					Thread.Sleep(3000);
+				//	Thread.Sleep(3000);
 
         	int x = 0;
 
-            foreach (Seam seam in seamsForRemoval)
-            {
-                seam.StartIndex -= x++;
-                CarveSeam(seam);
-            }
+            //foreach (Seam seam in seamsForRemoval)
+            //{
+            //    seam.StartIndex -= x++;
+            //    CarveSeam(seam);
+            //}
 
             OnImageChanged();
 
@@ -321,6 +359,14 @@ namespace MagiCarver
             }
         }
 
+        public Bitmap HorizontalIndexMap
+        {
+            get
+            {
+                return m_HorizontalIndexMap;   
+            }
+        }
+
         public void AddSeam(Constants.Direction direction, Size minimumSize, bool paintSeam)
         {
             Seam lowestEnergySeam;
@@ -330,12 +376,12 @@ namespace MagiCarver
 
                 if (direction == Constants.Direction.VERTICAL || direction == Constants.Direction.HORIZONTAL)
                 {
-                	lowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, 1);
+                	lowestEnergySeam = m_SeamFunction.GetKthLowestEnergySeam(direction, ImageSize, 1, null);
                 }
                 else
                 {
-                	Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, 1);
-                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, 1);
+                    Seam isLowest1 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, 1, null);
+                    Seam isLowest2 = m_SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, 1, null);
 
                     lowestEnergySeam = isLowest1.SeamValue < isLowest2.SeamValue ? isLowest1 : isLowest2;
                 }
