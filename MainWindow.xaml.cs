@@ -103,7 +103,7 @@ namespace MagiCarver
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) delegate
                         {
-                             Bitmap bitmap = ViewEvergyMap ? m_SeamImage.EnergyMapBitmap : m_SeamImage. Bitmap;
+                            Bitmap bitmap = ViewEvergyMap ? m_SeamImage.HorizontalIndexMap : m_SeamImage.Bitmap;
 
                              SetImageSource(bitmap);
 
@@ -178,7 +178,7 @@ namespace MagiCarver
             menuItemAddSeam.IsEnabled = false;
             txtStatus.Text = Constants.TEXT_WORKING;
 
-            Thread t1 = new Thread(() => m_SeamImage.Carve(m_Direction, m_PaintSeam, 100));
+            Thread t1 = new Thread(() => m_SeamImage.Carve(m_Direction, m_PaintSeam, 500));
 
             t1.Start();
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Imaging;
 using MagiCarver.EnergyFunctions;
 using System.Drawing;
 
@@ -310,7 +311,7 @@ namespace MagiCarver.SeamFunctions
             }
         }
 
-        public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k)
+        public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k, BitmapData indexMap)
         {
             if ((k >= size.Width) && (k >= size.Height))
             {
@@ -343,14 +344,14 @@ namespace MagiCarver.SeamFunctions
 
             List<KeyValuePair<Point, double>> lowestSeamsEnergy = (direction == Constants.Direction.VERTICAL ? LowestVerticalSeamsEnergy : LowestHorizontalSeamsEnergy);
 
-        	Seam seam = BuildSeam(direction, lowestSeamsEnergy[k].Key.X, lowestSeamsEnergy[k].Key.Y, size);
+            Seam seam = BuildSeam(direction, lowestSeamsEnergy[k].Key.X, lowestSeamsEnergy[k].Key.Y, size, indexMap, k);
 
             seam.SeamValue = lowestSeamsEnergy[k].Value;
 
             return seam;
         }
 
-        private Seam BuildSeam(Constants.Direction direction, int x, int y, Size size)
+        private Seam BuildSeam(Constants.Direction direction, int x, int y, Size size, BitmapData indexMap, int k)
         {
             int pixelCount = 0, xInc = 0, yInc = 0;                           
 
@@ -372,8 +373,22 @@ namespace MagiCarver.SeamFunctions
 
             int pixelIndex = pixelCount - 1;
 
+
+
             while (pixelIndex > 0)
             {
+
+                unsafe
+                {
+                    //((byte*)indexMap.Scan0)[x * 4 + 1 + y * indexMap.Stride] = (byte) (255 - ((k + 1) * 2.5));
+                    //((byte*)indexMap.Scan0)[x * 4 + 2 + y * indexMap.Stride] = (byte)((k + 1) * 2.5);
+                    //((byte*)indexMap.Scan0)[x * 4 + 3 + y * indexMap.Stride] = 255;
+
+                    ((byte*)indexMap.Scan0)[x * 4 + 1 + y * indexMap.Stride] = (byte) ((byte) k / 3);
+                    ((byte*)indexMap.Scan0)[x * 4 + 3 + y * indexMap.Stride] = 255;
+
+                }
+
                 KeyValuePair<Point, int> leftNeighbour;
                 KeyValuePair<Point, int> straightNeighbour;
                 KeyValuePair<Point, int> rightNeighbour;
