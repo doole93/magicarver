@@ -1,12 +1,18 @@
 ﻿<Window x:Class="MagiCarver.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    SizeToContent="WidthAndHeight" Loaded="Window_Loaded" ResizeMode="NoResize">
+    SizeToContent="WidthAndHeight" Loaded="Window_Loaded" ResizeMode="CanResizeWithGrip">
     
     <!-- Need to allow user to resize window -->
     
-    <DockPanel x:Name="stackPanel">
-        <Menu DockPanel.Dock="Top">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Loaded="RowDefinition_Loaded"></RowDefinition>
+            <RowDefinition Loaded="RowDefinition_Loaded"></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition Loaded="RowDefinition_Loaded"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Menu x:Name="theMenu">
             <MenuItem Header="_File">
                 <MenuItem Header="_Open Image" Click="OpenFile_Clicked"/>
                 <MenuItem x:Name="menuItemSaveImage" Header="_Save Image" IsEnabled="False" Click="SaveImage_Click"/>
@@ -29,29 +35,20 @@
                 <MenuItem x:Name="menuItemAbout" Header="_About" Click="About_Clicked"/>
             </MenuItem>
         </Menu>
-        <ToolBar DockPanel.Dock="Top">
+        <ToolBar x:Name="theToolbar" Grid.Row="1">
             
         </ToolBar>
-        <Grid DockPanel.Dock="Top">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-            </Grid.ColumnDefinitions>
-            <ScrollViewer Loaded="ScrollViewer_Loaded" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <InkCanvas IsEnabled="false" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
-                    <InkCanvas.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
-                        </ContextMenu>
-                    </InkCanvas.ContextMenu>
-                    <Image x:Name="theImage"/>
-                </InkCanvas>
-            </ScrollViewer>
-            <Border Grid.Column="1">
 
-            </Border>
-        </Grid>
-        <StatusBar DockPanel.Dock="Bottom">
+            <InkCanvas Grid.Row="2" IsEnabled="false" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
+                <InkCanvas.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
+                    </ContextMenu>
+                </InkCanvas.ContextMenu>
+                <Image x:Name="theImage"/>
+            </InkCanvas>
+
+        <StatusBar x:Name="theStatusBar" Grid.Row="3">
             <StatusBarItem>
                 <TextBlock x:Name="txtStatus" Text="Ready"></TextBlock>
             </StatusBarItem>
@@ -60,5 +57,5 @@
                 <TextBlock x:Name="txtResolution" Text="No image loaded"></TextBlock>
             </StatusBarItem>
         </StatusBar>
-    </DockPanel>
+    </Grid>
 </Window>
