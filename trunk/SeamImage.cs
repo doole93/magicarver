@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.Drawing;
 using System.Threading;
+using System.Windows.Ink;
+using System.Windows.Input;
+using System.Windows.Media;
 using MagiCarver.EnergyFunctions;
 using MagiCarver.SeamFunctions;
+using PixelFormat=System.Drawing.Imaging.PixelFormat;
 
 namespace MagiCarver
 {
@@ -22,6 +26,8 @@ namespace MagiCarver
 
         private EnergyFunction   m_EnergyFunction       { get; set; }
         private CumulativeEnergy m_SeamFunction         { get; set; }
+
+        private List<KeyValuePair<Point, Constants.EnergyType>> m_UserEnergy { get; set; }
 
         public event EventHandler ImageChanged;
         public event EventHandler OperationCompleted;
@@ -367,6 +373,14 @@ ImageLockMode.ReadWrite, m_VerticalIndexMap.PixelFormat);
             }
         }
 
+        public Bitmap VerticalIndexMap
+        {
+            get
+            {
+                return m_VerticalIndexMap;
+            }
+        }
+
         public void AddSeam(Constants.Direction direction, Size minimumSize, bool paintSeam)
         {
             Seam lowestEnergySeam;
@@ -520,6 +534,34 @@ ImageLockMode.ReadWrite, m_VerticalIndexMap.PixelFormat);
             }
 
          //   Utilities.ShiftAddArray(m_EnergyFunction.EnergyMap, direction, offset, fromIndex, toIndex, byte.MaxValue);
+        }
+
+        public void SetEnergy(StrokeCollection strokes)
+        {
+            m_UserEnergy = new List<KeyValuePair<Point, Constants.EnergyType>>();
+
+            foreach (Stroke stroke in strokes)
+            {
+                bool isHigh = stroke.DrawingAttributes.Color == Colors.Yellow ? true : false;
+
+                foreach (StylusPoint point in stroke.StylusPoints)
+                {
+                    m_UserEnergy.Add(new KeyValuePair<Point, Constants.EnergyType>(new Point((int)point.X, (int)point.Y), isHigh ? Constants.EnergyType.MAX : Constants.EnergyType.MIN));
+                }
+            }
+
+            RefineEnergy();
+        }
+
+        private void RefineEnergy()
+        {
+            foreach (KeyValuePair<Point, Constants.EnergyType> userEnergy in m_UserEnergy)
+            {
+                m_EnergyFunction.EnergyMap[userEnergy.Key.X, userEnergy.Key.Y] = (byte) (userEnergy.Value ==
+                                                                                         Constants.EnergyType.MAX
+                                                                                             ? 500
+                                                                                             : -10);
+            }
         }
     }
 }

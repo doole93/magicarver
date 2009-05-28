@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using MagiCarver.EnergyFunctions;
+using Color=System.Drawing.Color;
 using Size=System.Drawing.Size;
 
 namespace MagiCarver
@@ -21,18 +22,16 @@ namespace MagiCarver
     public partial class MainWindow
     {
         private SeamImage m_SeamImage { get; set; }
-        private bool ViewEvergyMap { get; set; }
+        private Constants.Maps ViewEvergyMap { get; set; }
         private bool m_PaintSeam { get; set; }
         private Constants.Direction m_Direction { get; set; }
-        private double baseHeight;
+        private DrawingAttributes Highlighter { get; set; }
 
         private delegate void VoidDelegate();
 
         public MainWindow()
         {
             InitializeComponent();
-
-            baseHeight = Height - ((Grid) theCanvas.Parent).Height;
         }
 
         private void OpenFile_Clicked(object sender, RoutedEventArgs e)
@@ -62,8 +61,12 @@ namespace MagiCarver
                            theCanvas.IsEnabled = true;
                            menuItemEnergyMap.IsEnabled = true;
                            menuItemEnergyMap.IsChecked = false;
-                           ViewEvergyMap = false;
+                           menuItemNormal.IsEnabled = true;
+                           menuItemNormal.IsChecked = true;
                            menuItemSaveImage.IsEnabled = true;
+                           ToggleHighEng.IsEnabled = true;
+                           ToggleLowEng.IsEnabled = true;
+                           DoneEditingButton.IsEnabled = true;
                            menuItemCarve.IsEnabled = true;
                            menuItemAddSeam.IsEnabled = true;
                            theCanvas.Strokes.Clear();
@@ -103,11 +106,28 @@ namespace MagiCarver
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) delegate
                         {
-                            Bitmap bitmap = ViewEvergyMap ? m_SeamImage.HorizontalIndexMap : m_SeamImage.Bitmap;
+
+                            Bitmap bitmap;
+
+                            switch (ViewEvergyMap)
+                            {
+                                case Constants.Maps.ENERGY:
+                                    bitmap = m_SeamImage.EnergyMapBitmap;
+                                    break;
+                                case Constants.Maps.NORMAL:
+                                    bitmap = m_SeamImage.Bitmap;
+                                    break;
+                                case Constants.Maps.HORIZONTAL_INDEX:
+                                    bitmap = m_SeamImage.HorizontalIndexMap;
+                                    break;
+                                case Constants.Maps.VERTICAL_INDEX:
+                                    bitmap = m_SeamImage.VerticalIndexMap;
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }
 
                              SetImageSource(bitmap);
-
-                            
                         });   
         }
 
@@ -131,7 +151,7 @@ namespace MagiCarver
 
         private void InkCanvas_Initialized(object sender, EventArgs e)
         {
-            DrawingAttributes highlighter = new DrawingAttributes
+            Highlighter = new DrawingAttributes
                                                   {
                                                       Color = Colors.Yellow,
                                                       IsHighlighter = true,
@@ -141,7 +161,7 @@ namespace MagiCarver
                                                       Width = 7
                                                   };
 
-            theCanvas.DefaultDrawingAttributes = highlighter;
+            theCanvas.EditingMode = InkCanvasEditingMode.None;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -184,11 +204,19 @@ namespace MagiCarver
 
         }
 
-        private void ViewEnergyMap_Clicked(object sender, RoutedEventArgs e)
+        private void ChangeMapView_Clicked(object sender, RoutedEventArgs e)
         {
-            ViewEvergyMap = ((MenuItem)sender).IsChecked;
+            foreach (MenuItem menuItem in ((MenuItem)((MenuItem)sender).Parent).Items)
+            {
+                menuItem.IsChecked = menuItem == sender;
 
-            m_SeamImage_ImageChanged(this, EventArgs.Empty);
+                if (menuItem.IsChecked)
+                {
+                    ViewEvergyMap = (Constants.Maps)int.Parse(menuItem.Tag.ToString());
+                }
+            }
+
+            m_SeamImage_ImageChanged(null, null);
         }
 
         private void ChangeDirection_Clicked(object sender, RoutedEventArgs e)
@@ -235,6 +263,57 @@ namespace MagiCarver
 
             rowDefinition.MaxHeight = rowDefinition.ActualHeight;
             rowDefinition.MinHeight = rowDefinition.ActualHeight;
-        }   
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged && (e.NewSize.Width - e.PreviousSize.Width < 0))
+            {
+                ((Window) sender).Width = e.PreviousSize.Width - 1;
+            }
+        }
+
+        private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (sender == ToggleHighEng)
+            {
+                if (ToggleHighEng.IsChecked == true)
+                {
+                    ToggleLowEng.IsChecked = false;
+                    Highlighter.Color = Colors.Yellow;
+                    theCanvas.DefaultDrawingAttributes = Highlighter;
+                    theCanvas.EditingMode = InkCanvasEditingMode.Ink;
+                }
+            }else
+            {
+                if (ToggleLowEng.IsChecked == true)
+                {
+                    ToggleHighEng.IsChecked = false;
+                    Highlighter.Color = Colors.Green;
+                    theCanvas.DefaultDrawingAttributes = Highlighter;
+                    theCanvas.EditingMode = InkCanvasEditingMode.Ink;
+                }
+            }
+
+            if ((ToggleHighEng.IsChecked == false) && (ToggleLowEng.IsChecked == false))
+            {
+                theCanvas.EditingMode = InkCanvasEditingMode.None;
+            }
+        }
+
+        private void DoneEditing_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Are you sure?", "Finished Editing", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                            MessageBoxResult.No) == MessageBoxResult.Yes)
+            {
+                ToggleHighEng.IsEnabled = false;
+                ToggleLowEng.IsEnabled = false;
+                ToggleHighEng.IsChecked = false;
+                ToggleLowEng.IsChecked = false;
+                DoneEditingButton.IsEnabled = false;
+
+                m_SeamImage.SetEnergy(theCanvas.Strokes);
+            }
+        }
     }
 }
