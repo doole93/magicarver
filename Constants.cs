@@ -17,6 +17,21 @@
             OPTIMAL
         } ;
 
+        public enum Maps
+        {
+            NORMAL,
+            ENERGY,
+            HORIZONTAL_INDEX,
+            VERTICAL_INDEX
+        } ;
+
+        public enum EnergyType
+        {
+            NORMAL,
+            MAX,
+            MIN
+        }
+
         public enum NeighbourType
         {
             LEFT,
