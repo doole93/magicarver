@@ -1,13 +1,14 @@
-﻿using System.Drawing;
-using System.Drawing.Imaging;
+﻿using System.Drawing.Imaging;
+using System.Windows;
+using Size=System.Drawing.Size;
 
 namespace MagiCarver.EnergyFunctions
 {
     public abstract class EnergyFunction
     {
-        public byte[,] EnergyMap { get; protected set; }
+        public int[,] EnergyMap { get; protected set; }
 
-        public byte GetEnergy(int x, int y, Size size)
+        public int GetEnergy(int x, int y, Size size)
         {
             if (Utilities.InBounds(x, y, size))
             {
