@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -11,7 +10,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using MagiCarver.EnergyFunctions;
-using Color=System.Drawing.Color;
 using Size=System.Drawing.Size;
 
 namespace MagiCarver
@@ -86,7 +84,7 @@ namespace MagiCarver
                         {
                             DrawingAttributes = { Color = System.Windows.Media.Color.FromRgb(255, 0, 0), Height = 1, Width = 1}
                         };
-                                                                                    
+                                     
                     theCanvas.Strokes.Add(seamStroke);
                 });
         }
@@ -98,7 +96,7 @@ namespace MagiCarver
                 menuItemCarve.IsEnabled = true;
                 menuItemAddSeam.IsEnabled = true;
                 txtStatus.Text = Constants.TEXT_READY;
-                theCanvas.Strokes.Clear();
+     //           theCanvas.Strokes.Clear();
             });
         }
 
@@ -107,7 +105,7 @@ namespace MagiCarver
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) delegate
                         {
 
-                            Bitmap bitmap;
+                            Bitmap bitmap = null;
 
                             switch (ViewEvergyMap)
                             {
@@ -118,10 +116,10 @@ namespace MagiCarver
                                     bitmap = m_SeamImage.Bitmap;
                                     break;
                                 case Constants.Maps.HORIZONTAL_INDEX:
-                                    bitmap = m_SeamImage.HorizontalIndexMap;
+
                                     break;
                                 case Constants.Maps.VERTICAL_INDEX:
-                                    bitmap = m_SeamImage.VerticalIndexMap;
+
                                     break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
@@ -198,7 +196,7 @@ namespace MagiCarver
             menuItemAddSeam.IsEnabled = false;
             txtStatus.Text = Constants.TEXT_WORKING;
 
-            Thread t1 = new Thread(() => m_SeamImage.Carve(m_Direction, m_PaintSeam, 500));
+            Thread t1 = new Thread(() => m_SeamImage.Carve(m_Direction, m_PaintSeam, 128));
 
             t1.Start();
 
@@ -267,10 +265,7 @@ namespace MagiCarver
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (e.WidthChanged && (e.NewSize.Width - e.PreviousSize.Width < 0))
-            {
-                ((Window) sender).Width = e.PreviousSize.Width - 1;
-            }
+
         }
 
         private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)
@@ -281,6 +276,9 @@ namespace MagiCarver
                 {
                     ToggleLowEng.IsChecked = false;
                     Highlighter.Color = Colors.Yellow;
+                    Highlighter.Width = 1;
+                    Highlighter.Height = 1;
+                    Highlighter.StylusTip = StylusTip.Rectangle;
                     theCanvas.DefaultDrawingAttributes = Highlighter;
                     theCanvas.EditingMode = InkCanvasEditingMode.Ink;
                 }
@@ -290,6 +288,9 @@ namespace MagiCarver
                 {
                     ToggleHighEng.IsChecked = false;
                     Highlighter.Color = Colors.Green;
+                    Highlighter.Width = 1;
+                    Highlighter.Height = 1;
+                    Highlighter.StylusTip = StylusTip.Rectangle;
                     theCanvas.DefaultDrawingAttributes = Highlighter;
                     theCanvas.EditingMode = InkCanvasEditingMode.Ink;
                 }
@@ -312,7 +313,13 @@ namespace MagiCarver
                 ToggleLowEng.IsChecked = false;
                 DoneEditingButton.IsEnabled = false;
 
+                theCanvas.EditingMode = InkCanvasEditingMode.None;
+
                 m_SeamImage.SetEnergy(theCanvas.Strokes);
+
+                m_SeamImage.RecomputeEntireMap();
+
+                m_SeamImage.CalculateIndexMaps();
             }
         }
     }

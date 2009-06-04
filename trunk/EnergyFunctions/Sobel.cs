@@ -9,7 +9,7 @@ namespace MagiCarver.EnergyFunctions
         public override void ComputeEnergy(BitmapData bitmapData, Size size)
         {
 
-            EnergyMap = new byte[bitmapData.Width, bitmapData.Height];
+            EnergyMap = new int[bitmapData.Width, bitmapData.Height];
 
             for (int x = 0; x < size.Width; ++x)
             {
