@@ -10,17 +10,14 @@ namespace MagiCarver
 {
     public static class Utilities
     {
+        #region Other Methods
+
         public static void ExportToPng(Uri path, Image image)
         {
             System.Windows.Size size = new System.Windows.Size(image.RenderSize.Width, image.RenderSize.Height);
 
-            RenderTargetBitmap renderBitmap =
-              new RenderTargetBitmap(
-                (int)size.Width,
-                (int)size.Height,
-                96d,
-                96d,
-                PixelFormats.Pbgra32);
+            RenderTargetBitmap renderBitmap = 
+                new RenderTargetBitmap((int)size.Width, (int)size.Height, 96d, 96d, PixelFormats.Pbgra32);
             
             renderBitmap.Render(image);
 
@@ -53,66 +50,68 @@ namespace MagiCarver
             return (x >= 0) && (x < size.Width) && (y >= 0) && (y < size.Height);
         }
 
-        // toIndex is exclusive.
-        public static void ShiftArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
-        {
-            int x = 0, y = 0, xMax = int.MaxValue, yMax = int.MaxValue, xInc = 0, yInc = 0;
+        #endregion
 
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                x = fromIndex;
-                y = OppositeDirectionOffset;
-                xMax = toIndex - 1;
-                xInc = 1;
-            }
-            else if (direction == Constants.Direction.HORIZONTAL)
-            {
-                x = OppositeDirectionOffset;
-                y = fromIndex;
-                yMax = toIndex - 1;
-                yInc = 1;
-            }
+        //// toIndex is exclusive.
+        //public static void ShiftArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
+        //{
+        //    int x = 0, y = 0, xMax = int.MaxValue, yMax = int.MaxValue, xInc = 0, yInc = 0;
 
-            while ((x < xMax) && (y < yMax))
-            {
-                array[x, y] = array[x + xInc, y + yInc];
+        //    if (direction == Constants.Direction.VERTICAL)
+        //    {
+        //        x = fromIndex;
+        //        y = OppositeDirectionOffset;
+        //        xMax = toIndex - 1;
+        //        xInc = 1;
+        //    }
+        //    else if (direction == Constants.Direction.HORIZONTAL)
+        //    {
+        //        x = OppositeDirectionOffset;
+        //        y = fromIndex;
+        //        yMax = toIndex - 1;
+        //        yInc = 1;
+        //    }
 
-                x += xInc;
-                y += yInc;
-            }
+        //    while ((x < xMax) && (y < yMax))
+        //    {
+        //        array[x, y] = array[x + xInc, y + yInc];
 
-            array[x, y] = (T)defaultValue;
-        }
+        //        x += xInc;
+        //        y += yInc;
+        //    }
+
+        //    array[x, y] = (T)defaultValue;
+        //}
 
         // toIndex is inclusive.
-        public static void ShiftAddArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
-        {
-            int x = 0, y = 0, xMin = int.MaxValue, yMin = int.MaxValue, xInc = 0, yInc = 0;
+        //public static void ShiftAddArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
+        //{
+        //    int x = 0, y = 0, xMin = int.MaxValue, yMin = int.MaxValue, xInc = 0, yInc = 0;
 
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                x = toIndex;
-                y = OppositeDirectionOffset;
-                xMin = fromIndex;
-                xInc = -1;
-            }
-            else if (direction == Constants.Direction.HORIZONTAL)
-            {
-                x = OppositeDirectionOffset;
-                y = fromIndex;
-                yMin = toIndex - 1;
-                yInc = -1;
-            }
+        //    if (direction == Constants.Direction.VERTICAL)
+        //    {
+        //        x = toIndex;
+        //        y = OppositeDirectionOffset;
+        //        xMin = fromIndex;
+        //        xInc = -1;
+        //    }
+        //    else if (direction == Constants.Direction.HORIZONTAL)
+        //    {
+        //        x = OppositeDirectionOffset;
+        //        y = fromIndex;
+        //        yMin = toIndex - 1;
+        //        yInc = -1;
+        //    }
 
-            while ((x > xMin) && (y > yMin))
-            {
-                array[x, y] = array[x + xInc, y + yInc];
+        //    while ((x > xMin) && (y > yMin))
+        //    {
+        //        array[x, y] = array[x + xInc, y + yInc];
 
-                x += xInc;
-                y += yInc;
-            }
+        //        x += xInc;
+        //        y += yInc;
+        //    }
 
-          //  array[x, y] = (T)defaultValue;
-        }
+        //  //  array[x, y] = (T)defaultValue;
+        //}
     }
 }

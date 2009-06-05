@@ -1,5 +1,4 @@
 ﻿using System.Drawing.Imaging;
-using System.Windows;
 using Size=System.Drawing.Size;
 
 namespace MagiCarver.EnergyFunctions

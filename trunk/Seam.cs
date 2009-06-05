@@ -5,6 +5,8 @@ namespace MagiCarver
 {
     public class Seam
     {
+        #region Properties
+
         public Constants.SeamPixelDirection[] PixelDirections { get; set; }
 
         public Constants.Direction Direction { get; set; }
@@ -62,5 +64,7 @@ namespace MagiCarver
                 y += yInc;
             }
         }
+
+        #endregion
     }
 }
