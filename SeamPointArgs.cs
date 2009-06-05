@@ -6,6 +6,12 @@ namespace MagiCarver
 {
     public class SeamPointArgs : EventArgs
     {
+        #region Properties
+
+        public List<Point> Points { get; set; }
+
+        #endregion
+
         #region CTors
 
         public SeamPointArgs(IEnumerable<System.Drawing.Point> points)
@@ -19,13 +25,5 @@ namespace MagiCarver
         }
 
         #endregion
-
-        #region Properties
-
-        public List<Point> Points { get; set; }
-
-        #endregion
-
-
     }
 }
