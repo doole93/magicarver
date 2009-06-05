@@ -52,36 +52,36 @@ namespace MagiCarver
 
         #endregion
 
-        //// toIndex is exclusive.
-        //public static void ShiftArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
-        //{
-        //    int x = 0, y = 0, xMax = int.MaxValue, yMax = int.MaxValue, xInc = 0, yInc = 0;
+        // toIndex is exclusive.
+        public static void ShiftArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
+        {
+            int x = 0, y = 0, xMax = int.MaxValue, yMax = int.MaxValue, xInc = 0, yInc = 0;
 
-        //    if (direction == Constants.Direction.VERTICAL)
-        //    {
-        //        x = fromIndex;
-        //        y = OppositeDirectionOffset;
-        //        xMax = toIndex - 1;
-        //        xInc = 1;
-        //    }
-        //    else if (direction == Constants.Direction.HORIZONTAL)
-        //    {
-        //        x = OppositeDirectionOffset;
-        //        y = fromIndex;
-        //        yMax = toIndex - 1;
-        //        yInc = 1;
-        //    }
+            if (direction == Constants.Direction.VERTICAL)
+            {
+                x = fromIndex;
+                y = OppositeDirectionOffset;
+                xMax = toIndex - 1;
+                xInc = 1;
+            }
+            else if (direction == Constants.Direction.HORIZONTAL)
+            {
+                x = OppositeDirectionOffset;
+                y = fromIndex;
+                yMax = toIndex - 1;
+                yInc = 1;
+            }
 
-        //    while ((x < xMax) && (y < yMax))
-        //    {
-        //        array[x, y] = array[x + xInc, y + yInc];
+            while ((x < xMax) && (y < yMax))
+            {
+                array[x, y] = array[x + xInc, y + yInc];
 
-        //        x += xInc;
-        //        y += yInc;
-        //    }
+                x += xInc;
+                y += yInc;
+            }
 
-        //    array[x, y] = (T)defaultValue;
-        //}
+            array[x, y] = (T)defaultValue;
+        }
 
         // toIndex is inclusive.
         //public static void ShiftAddArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
