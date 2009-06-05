@@ -10,6 +10,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using MagiCarver.EnergyFunctions;
+using Image=System.Drawing.Image;
 using Size=System.Drawing.Size;
 
 namespace MagiCarver
@@ -65,7 +66,7 @@ namespace MagiCarver
 
                    try
                    {
-                       bitmap = new Bitmap(openFile.FileName);    
+                       bitmap = new Bitmap(openFile.FileName); 
                    }catch (ArgumentException)
                    {
                        MessageBox.Show("Invalid file selected. Please select a valid image file.", "Open File Error",
@@ -190,7 +191,7 @@ namespace MagiCarver
         {
             WorkInProgress(true);
 
-            Thread t1 = new Thread(delegate() { SeamImage.Carve(Direction, PaintSeam, 128);
+            Thread t1 = new Thread(delegate() { SeamImage.Carve(Direction, PaintSeam, 1);
             WorkInProgress(false);});
 
             t1.Start();
