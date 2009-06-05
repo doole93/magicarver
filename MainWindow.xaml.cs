@@ -302,7 +302,8 @@ namespace MagiCarver
 
                 Thread t1 = new Thread(() => 
                     Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) (() =>
-                      {SeamImage.SetEnergy(theCanvas.Strokes);SeamImage.RecomputeEntireMap();
+                      {   SeamImage.SetEnergy(theCanvas.Strokes);
+                          SeamImage.RecomputeEntireMap();
                           SeamImage.CalculateIndexMaps();
                           WorkInProgress(false);
                     })));
