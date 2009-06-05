@@ -576,7 +576,13 @@ namespace MagiCarver
 
                 foreach (StylusPoint point in stroke.StylusPoints)
                 {
-                    m_UserEnergy.Add(new KeyValuePair<Point, Constants.EnergyType>(new Point((int)point.X, (int)point.Y), isHigh ? Constants.EnergyType.MAX : Constants.EnergyType.MIN));
+                    for (int i = 0; i < stroke.DrawingAttributes.Width; ++i)
+                    {
+                        for (int j = 0; j < stroke.DrawingAttributes.Height; ++j)
+                        {
+                            m_UserEnergy.Add(new KeyValuePair<Point, Constants.EnergyType>(new Point((int) (point.X - stroke.DrawingAttributes.Width / 2 + i), (int) (point.Y - stroke.DrawingAttributes.Height / 2 + j)), isHigh ? Constants.EnergyType.MAX : Constants.EnergyType.MIN));
+                        }
+                    }  
                 }
             }
 
@@ -606,7 +612,7 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    m_HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, m_CurrentHeight); ;
+                                                    m_HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, m_CurrentHeight);
                                                 });
 
             Thread tVertical = new Thread(delegate()

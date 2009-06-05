@@ -14,23 +14,38 @@ using Size=System.Drawing.Size;
 
 namespace MagiCarver
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow
     {
-        private SeamImage m_SeamImage { get; set; }
-        private Constants.Maps ViewEvergyMap { get; set; }
-        private bool m_PaintSeam { get; set; }
-        private Constants.Direction m_Direction { get; set; }
-        private DrawingAttributes Highlighter { get; set; }
+        #region Delegates
 
         private delegate void VoidDelegate();
+
+        #endregion
+
+        #region Properties
+
+        private SeamImage           SeamImage { get; set; }
+        private Constants.Maps      CurrentViewBitmap { get; set; }
+        private bool                PaintSeam { get; set; }
+        private Constants.Direction Direction { get; set; }
+        private DrawingAttributes   Highlighter { get; set; }
+        private bool                FinishedUserInput { get; set; }
+
+        #endregion
+
+        #region CTors
 
         public MainWindow()
         {
             InitializeComponent();
+
+            Direction = Constants.Direction.OPTIMAL;
+            PaintSeam = true;
         }
+
+        #endregion
+
+        #region Event Handlers
 
         private void OpenFile_Clicked(object sender, RoutedEventArgs e)
         {
@@ -42,34 +57,42 @@ namespace MagiCarver
                 return;
             }
 
-            txtStatus.Text = Constants.TEXT_WORKING;
+            WorkInProgress(true);
 
             Thread t1 = new Thread(delegate()
                {
-                   Bitmap bitmap = new Bitmap(openFile.FileName);
+                   Bitmap bitmap = null;
 
-                   m_SeamImage = new SeamImage(bitmap, new Sobel());
-                   m_SeamImage.ImageChanged += m_SeamImage_ImageChanged;
-                   m_SeamImage.OperationCompleted += m_SeamImage_OperationCompleted;
-                   m_SeamImage.ColorSeam += m_SeamImage_ColorSeam;
+                   try
+                   {
+                       bitmap = new Bitmap(openFile.FileName);    
+                   }catch (ArgumentException)
+                   {
+                       MessageBox.Show("Invalid file selected. Please select a valid image file.", "Open File Error",
+                                       MessageBoxButton.OK, MessageBoxImage.Error);
+                   }
 
+                   if (bitmap != null)
+                   {
+                       SeamImage = new SeamImage(bitmap, new Sobel());
+
+                       FinishedUserInput = false;
+
+                       SeamImage.ImageChanged += m_SeamImage_ImageChanged;
+                       SeamImage.OperationCompleted += m_SeamImage_OperationCompleted;
+                       SeamImage.ColorSeam += m_SeamImage_ColorSeam;
+                   }
+                   
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
                        {
-                           SetImageSource (bitmap);
-                           theCanvas.IsEnabled = true;
-                           menuItemEnergyMap.IsEnabled = true;
-                           menuItemEnergyMap.IsChecked = false;
-                           menuItemNormal.IsEnabled = true;
-                           menuItemNormal.IsChecked = true;
-                           menuItemSaveImage.IsEnabled = true;
-                           ToggleHighEng.IsEnabled = true;
-                           ToggleLowEng.IsEnabled = true;
-                           DoneEditingButton.IsEnabled = true;
-                           menuItemCarve.IsEnabled = true;
-                           menuItemAddSeam.IsEnabled = true;
-                           theCanvas.Strokes.Clear();
-                           Title = Constants.TITLE + " - " + openFile.SafeFileName;
-                           txtStatus .Text =  Constants.TEXT_READY;
+                           if (bitmap != null)
+                           {
+                               SetImageSource(bitmap, openFile.SafeFileName);
+                               WorkInProgress(false);
+                           }else
+                           {
+                               Title = Constants.TEXT_READY;
+                           }
                        });
                });
             
@@ -93,10 +116,7 @@ namespace MagiCarver
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
             {
-                menuItemCarve.IsEnabled = true;
-                menuItemAddSeam.IsEnabled = true;
-                txtStatus.Text = Constants.TEXT_READY;
-     //           theCanvas.Strokes.Clear();
+                WorkInProgress(false);
             });
         }
 
@@ -104,16 +124,15 @@ namespace MagiCarver
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) delegate
                         {
-
                             Bitmap bitmap = null;
 
-                            switch (ViewEvergyMap)
+                            switch (CurrentViewBitmap)
                             {
                                 case Constants.Maps.ENERGY:
-                                    bitmap = m_SeamImage.EnergyMapBitmap;
+                                    bitmap = SeamImage.EnergyMapBitmap;
                                     break;
                                 case Constants.Maps.NORMAL:
-                                    bitmap = m_SeamImage.Bitmap;
+                                    bitmap = SeamImage.Bitmap;
                                     break;
                                 case Constants.Maps.HORIZONTAL_INDEX:
 
@@ -125,48 +144,26 @@ namespace MagiCarver
                                     throw new ArgumentOutOfRangeException();
                             }
 
-                             SetImageSource(bitmap);
+                             SetImageSource(bitmap, null);
                         });   
-        }
-
-        private void SetImageSource(Bitmap bitmap)
-        {
-            theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),
-                                                                                           IntPtr.Zero, Int32Rect.Empty,
-                                                                                           BitmapSizeOptions.
-                                                                                               FromWidthAndHeight(
-                                                                                               bitmap.Width,
-                                                                                               bitmap.Height));
-
-            Size size = m_SeamImage.ImageSize;
-
-            txtResolution.Text = size.Width + " x " + size.Height;
-
-            Width = bitmap.Width;
-            Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
-
         }
 
         private void InkCanvas_Initialized(object sender, EventArgs e)
         {
             Highlighter = new DrawingAttributes
-                                                  {
-                                                      Color = Colors.Yellow,
-                                                      IsHighlighter = true,
-                                                      IgnorePressure = true,
-                                                      StylusTip = StylusTip.Ellipse,
-                                                      Height = 7,
-                                                      Width = 7
-                                                  };
+                              {
+                                  IsHighlighter = true,
+                                  StylusTip = StylusTip.Ellipse,
+                                  Height = 8,
+                                  Width = 8
+                              };
 
+            theCanvas.DefaultDrawingAttributes = Highlighter;
             theCanvas.EditingMode = InkCanvasEditingMode.None;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            m_Direction = Constants.Direction.OPTIMAL;
-            m_PaintSeam = true;
-
             Title = Constants.TITLE;
         }
 
@@ -183,7 +180,9 @@ namespace MagiCarver
         private void SaveImage_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog saveFile = new SaveFileDialog {Filter = "Image files (*.png)|*.png"};
+
             saveFile.ShowDialog();
+
             if (!String.IsNullOrEmpty(saveFile.FileName))
             {
                 Utilities.ExportToPng(new Uri(saveFile.FileName, UriKind.Absolute), theImage);
@@ -192,14 +191,12 @@ namespace MagiCarver
 
         private void Carve_Clicked(object sender, RoutedEventArgs e)
         {
-            menuItemCarve.IsEnabled = false;
-            menuItemAddSeam.IsEnabled = false;
-            txtStatus.Text = Constants.TEXT_WORKING;
+            WorkInProgress(true);
 
-            Thread t1 = new Thread(() => m_SeamImage.Carve(m_Direction, m_PaintSeam, 128));
+            Thread t1 = new Thread(delegate() { SeamImage.Carve(Direction, PaintSeam, 128);
+            WorkInProgress(false);});
 
             t1.Start();
-
         }
 
         private void ChangeMapView_Clicked(object sender, RoutedEventArgs e)
@@ -210,7 +207,7 @@ namespace MagiCarver
 
                 if (menuItem.IsChecked)
                 {
-                    ViewEvergyMap = (Constants.Maps)int.Parse(menuItem.Tag.ToString());
+                    CurrentViewBitmap = (Constants.Maps)int.Parse(menuItem.Tag.ToString());
                 }
             }
 
@@ -225,14 +222,14 @@ namespace MagiCarver
 
                 if (menuItem.IsChecked)
                 {
-                    m_Direction = (Constants.Direction) int.Parse(menuItem.Tag.ToString());
+                    Direction = (Constants.Direction) int.Parse(menuItem.Tag.ToString());
                 }
             }
         }
 
         private void PaintSeam_Clicked(object sender, RoutedEventArgs e)
         {
-            m_PaintSeam = ((MenuItem) sender).IsChecked;
+            PaintSeam = ((MenuItem) sender).IsChecked;
         }
 
         private void About_Clicked(object sender, RoutedEventArgs e)
@@ -242,17 +239,18 @@ namespace MagiCarver
 
         private void AddSeam_Clicked(object sender, RoutedEventArgs e)
         {
-            menuItemCarve.IsEnabled = false;
-            menuItemAddSeam.IsEnabled = false;
-            txtStatus.Text = Constants.TEXT_WORKING;
+            //menuItemCarve.IsEnabled = false;
+            //menuItemAddSeam.IsEnabled = false;
+            //txtStatus.Text = Constants.TEXT_WORKING;
 
-            Thread t1 = new Thread(delegate()
-            {
-                Size minimumSize = new Size(m_SeamImage.ImageSize.Width + 5, m_SeamImage.ImageSize.Height + 5);
-                m_SeamImage.AddSeam(m_Direction, minimumSize, m_PaintSeam);
-            });
+            //Thread t1 = new Thread(delegate()
+            //{
+            //    Size minimumSize = new Size(SeamImage.ImageSize.Width + 5, SeamImage.ImageSize.Height + 5);
+            //    SeamImage.AddSeam(Direction, minimumSize, PaintSeam);
+            //});
 
-            t1.Start();
+            //t1.Start();
+            MessageBox.Show("Under Construction.");
         }
 
         private void RowDefinition_Loaded(object sender, RoutedEventArgs e)
@@ -276,29 +274,22 @@ namespace MagiCarver
                 {
                     ToggleLowEng.IsChecked = false;
                     Highlighter.Color = Colors.Yellow;
-                    Highlighter.Width = 1;
-                    Highlighter.Height = 1;
-                    Highlighter.StylusTip = StylusTip.Rectangle;
-                    theCanvas.DefaultDrawingAttributes = Highlighter;
-                    theCanvas.EditingMode = InkCanvasEditingMode.Ink;
                 }
             }else
             {
                 if (ToggleLowEng.IsChecked == true)
                 {
                     ToggleHighEng.IsChecked = false;
-                    Highlighter.Color = Colors.Green;
-                    Highlighter.Width = 1;
-                    Highlighter.Height = 1;
-                    Highlighter.StylusTip = StylusTip.Rectangle;
-                    theCanvas.DefaultDrawingAttributes = Highlighter;
-                    theCanvas.EditingMode = InkCanvasEditingMode.Ink;
+                    Highlighter.Color = Colors.Green;   
                 }
             }
 
             if ((ToggleHighEng.IsChecked == false) && (ToggleLowEng.IsChecked == false))
             {
                 theCanvas.EditingMode = InkCanvasEditingMode.None;
+            }else
+            {
+                theCanvas.EditingMode = InkCanvasEditingMode.Ink;
             }
         }
 
@@ -307,20 +298,77 @@ namespace MagiCarver
             if (MessageBox.Show("Are you sure?", "Finished Editing", MessageBoxButton.YesNo, MessageBoxImage.Question,
                             MessageBoxResult.No) == MessageBoxResult.Yes)
             {
-                ToggleHighEng.IsEnabled = false;
-                ToggleLowEng.IsEnabled = false;
-                ToggleHighEng.IsChecked = false;
-                ToggleLowEng.IsChecked = false;
-                DoneEditingButton.IsEnabled = false;
-
+                FinishedUserInput = true;
                 theCanvas.EditingMode = InkCanvasEditingMode.None;
 
-                m_SeamImage.SetEnergy(theCanvas.Strokes);
+                WorkInProgress(true);
 
-                m_SeamImage.RecomputeEntireMap();
+                Thread t1 = new Thread(delegate()
+                                           {
+                   Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) delegate
+                                                                                        {
+                        SeamImage.SetEnergy(theCanvas.Strokes);
+                        SeamImage.RecomputeEntireMap();
+                        SeamImage.CalculateIndexMaps();
+                        WorkInProgress(false);
+                    });
+                 });
 
-                m_SeamImage.CalculateIndexMaps();
+                t1.Start();
             }
         }
+
+        #endregion
+
+        #region Other Methods
+
+        private void SetImageSource(Bitmap bitmap, string bitmapName)
+        {
+            theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),
+                                                                                           IntPtr.Zero, Int32Rect.Empty,
+                                                                                           BitmapSizeOptions.
+                                                                                               FromWidthAndHeight(
+                                                                                               bitmap.Width,
+                                                                                               bitmap.Height));
+
+            Size size = SeamImage.ImageSize;
+
+            txtResolution.Text = size.Width + " x " + size.Height;
+            if (bitmapName != null)
+            {
+                Title = Constants.TITLE + " - " + bitmapName;      
+            }
+
+            Width = bitmap.Width;
+            Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
+
+        }
+
+        private void WorkInProgress(bool isWorking)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
+            {
+                theCanvas.IsEnabled = !isWorking;
+                menuItemEnergyMap.IsEnabled = !isWorking;
+                menuItemNormal.IsEnabled = !isWorking;
+                menuItemNormal.IsChecked = !isWorking;
+                menuItemSaveImage.IsEnabled = !isWorking;
+                ToggleHighEng.IsEnabled = !FinishedUserInput && !isWorking;
+                ToggleLowEng.IsEnabled = !FinishedUserInput && !isWorking;
+                ToggleLowEng.IsChecked = false;
+                ToggleHighEng.IsChecked = false;
+                DoneEditingButton.IsEnabled = !FinishedUserInput && !isWorking;
+                menuItemCarve.IsEnabled = FinishedUserInput && !isWorking;
+                menuItemAddSeam.IsEnabled = FinishedUserInput && !isWorking;
+                txtStatus.Text = isWorking ? Constants.TEXT_WORKING : Constants.TEXT_READY;
+
+                if (!isWorking)
+                {
+                    theCanvas.Strokes.Clear();    
+                }
+            });
+        }
+
+        #endregion
     }
 }
