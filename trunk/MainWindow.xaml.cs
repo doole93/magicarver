@@ -114,10 +114,7 @@ namespace MagiCarver
 
         private void m_SeamImage_OperationCompleted(object sender, EventArgs e)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
-            {
-                WorkInProgress(false);
-            });
+            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
         }
 
         private void m_SeamImage_ImageChanged(object sender, EventArgs e)
@@ -153,7 +150,7 @@ namespace MagiCarver
             Highlighter = new DrawingAttributes
                               {
                                   IsHighlighter = true,
-                                  StylusTip = StylusTip.Ellipse,
+                                  StylusTip = StylusTip.Rectangle,
                                   Height = 8,
                                   Width = 8
                               };
@@ -303,16 +300,12 @@ namespace MagiCarver
 
                 WorkInProgress(true);
 
-                Thread t1 = new Thread(delegate()
-                                           {
-                   Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) delegate
-                                                                                        {
-                        SeamImage.SetEnergy(theCanvas.Strokes);
-                        SeamImage.RecomputeEntireMap();
-                        SeamImage.CalculateIndexMaps();
-                        WorkInProgress(false);
-                    });
-                 });
+                Thread t1 = new Thread(() => 
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) (() =>
+                      {SeamImage.SetEnergy(theCanvas.Strokes);SeamImage.RecomputeEntireMap();
+                          SeamImage.CalculateIndexMaps();
+                          WorkInProgress(false);
+                    })));
 
                 t1.Start();
             }
