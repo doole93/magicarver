@@ -6,9 +6,69 @@ namespace MagiCarver.EnergyFunctions
 {
     public class Sobel : EnergyFunction
     {
+        #region Other Methods
+
+        private static double GetSobelPixel(BitmapData bitmapData, int x, int y, Size size)
+        {
+            if (x < 0)
+            {
+                x = 0;
+            }
+            else if (x >= size.Width)
+            {
+                x = size.Width - 1;
+            }
+
+            if (y < 0)
+            {
+                y = 0;
+            }
+            else if (y >= size.Height)
+            {
+                y = size.Height - 1;
+            }
+
+            return Utilities.GetPixel(bitmapData, size, x, y);
+        }
+
+        private static byte GetSobelEnergy(BitmapData bitmapData, int x, int y, Size size)
+        {
+            if (Utilities.InBounds(x, y, size))
+            {
+                byte[] pixels = new byte[9];
+
+                pixels[0] = (byte)GetSobelPixel(bitmapData, x - 1, y - 1, size);
+                pixels[1] = (byte)GetSobelPixel(bitmapData, x, y - 1, size);
+                pixels[2] = (byte)GetSobelPixel(bitmapData, x + 1, y - 1, size);
+                pixels[3] = (byte)GetSobelPixel(bitmapData, x - 1, y, size);
+                pixels[4] = (byte)GetSobelPixel(bitmapData, x, y, size);
+                pixels[5] = (byte)GetSobelPixel(bitmapData, x + 1, y, size);
+                pixels[6] = (byte)GetSobelPixel(bitmapData, x - 1, y + 1, size);
+                pixels[7] = (byte)GetSobelPixel(bitmapData, x, y + 1, size);
+                pixels[8] = (byte)GetSobelPixel(bitmapData, x + 1, y + 1, size);
+
+                int xSobel = pixels[0] + (pixels[1] + pixels[1]) + pixels[2] - pixels[6] - (pixels[7] + pixels[7]) - pixels[8];
+                int ySobel = pixels[2] + (pixels[5] + pixels[5]) + pixels[8] - pixels[0] - (pixels[3] + pixels[3]) - pixels[6];
+
+                int sobel = (int)Math.Sqrt((xSobel * xSobel) + (ySobel * ySobel));
+
+                if (sobel > 255)
+                {
+                    sobel = 255;
+                }
+
+                return (byte)sobel;
+            }
+
+            return byte.MaxValue;
+        }
+
+        #endregion
+
+        #region Implementation of EnergyFunction
+
         public override void ComputeEnergy(BitmapData bitmapData, Size size)
         {
-
             EnergyMap = new int[bitmapData.Width, bitmapData.Height];
 
             for (int x = 0; x < size.Width; ++x)
@@ -52,57 +112,6 @@ namespace MagiCarver.EnergyFunctions
             }
         }
 
-        private static double GetSobelPixel(BitmapData bitmapData, int x, int y, Size size)
-        {
-            if (x < 0)
-            {
-                x = 0;
-            }else if (x >= size.Width)
-            {
-                x = size.Width - 1;
-            }
-
-            if (y < 0)
-            {
-                y = 0;
-            }else if (y >= size.Height)
-            {
-                y = size.Height - 1;
-            }
-
-            return Utilities.GetPixel(bitmapData, size, x, y);
-        }
-
-        private static byte GetSobelEnergy(BitmapData bitmapData, int x, int y, Size size)
-        {
-            if (Utilities.InBounds(x, y, size))
-            {
-                byte[] pixels = new byte[9];
-
-                pixels[0] = (byte)GetSobelPixel(bitmapData, x - 1, y - 1, size);
-                pixels[1] = (byte)GetSobelPixel(bitmapData, x    , y - 1, size);
-                pixels[2] = (byte)GetSobelPixel(bitmapData, x + 1, y - 1, size);
-                pixels[3] = (byte)GetSobelPixel(bitmapData, x - 1, y    , size);
-                pixels[4] = (byte)GetSobelPixel(bitmapData, x    , y    , size);
-                pixels[5] = (byte)GetSobelPixel(bitmapData, x + 1, y    , size);
-                pixels[6] = (byte)GetSobelPixel(bitmapData, x - 1, y + 1, size);
-                pixels[7] = (byte)GetSobelPixel(bitmapData, x    , y + 1, size);
-                pixels[8] = (byte)GetSobelPixel(bitmapData, x + 1, y + 1, size);
-
-                int xSobel = pixels[0] + (pixels[1] + pixels[1]) + pixels[2] - pixels[6] - (pixels[7] + pixels[7]) - pixels[8];
-                int ySobel = pixels[2] + (pixels[5] + pixels[5]) + pixels[8] - pixels[0] - (pixels[3] + pixels[3]) - pixels[6];
-
-                int sobel = (int) Math.Sqrt((xSobel*xSobel) + (ySobel*ySobel));
-
-                if (sobel > 255)
-                {
-                    sobel = 255;
-                }
-
-                return (byte) sobel;
-            }
-
-            return byte.MaxValue;
-        }
+        #endregion
     }
 }

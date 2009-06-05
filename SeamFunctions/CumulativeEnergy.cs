@@ -1,21 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing.Imaging;
 using MagiCarver.EnergyFunctions;
 using System.Drawing;
-
-/*
- * 
- * ShiftPixels has to be per list of seams, and not per seams.
- * The same goes for the local updates...
- * 
- * */
 
 namespace MagiCarver.SeamFunctions
 {
     public class CumulativeEnergy
     {
+        #region Data Members
+
         public EnergyFunction EnergyFunction { get; set; }
 
         private int[,] VerticalCumulativeEnergyMap { get; set; }
@@ -27,12 +20,16 @@ namespace MagiCarver.SeamFunctions
         private List<KeyValuePair<Point, double>> LowestVerticalSeamsEnergy;
         private List<KeyValuePair<Point, double>> LowestHorizontalSeamsEnergy;
 
-        private bool VerticalMapDirty { get; set; }
-        private bool HorizontalMapDirty { get; set; }
+        //private bool VerticalMapDirty { get; set; }
+        //private bool HorizontalMapDirty { get; set; }
+
+        #endregion
+
+        #region Other Methods
 
         public void ComputeEntireEnergyMap(Constants.Direction direction, Size size)
         {
-            int endOffset = 0;
+            int endOffset;
 
             if (direction == Constants.Direction.VERTICAL)
             {
@@ -41,7 +38,7 @@ namespace MagiCarver.SeamFunctions
                 LowestVerticalSeamsEnergy = new List<KeyValuePair<Point, double>>();
                 endOffset = size.Width - 1;
             }
-            else if (direction == Constants.Direction.HORIZONTAL)
+            else
             {
                 HorizontalCumulativeEnergyMap = new int[size.Width, size.Height];
                 HorizontalCumulativeEnergyMapUsed = new bool[size.Width, size.Height];
@@ -54,7 +51,7 @@ namespace MagiCarver.SeamFunctions
 
         private void ComputeSubEnergyMap(Constants.Direction direction, int startOffset, int endOffset, Size size)
         {
-            int[,] cumulativeEnergyMap;
+            int[,] cumulativeEnergyMap ;
             int x = 0, y = 0, xInc = 0, yInc = 0, pixelCount;
 
             if (direction == Constants.Direction.VERTICAL)
@@ -64,16 +61,12 @@ namespace MagiCarver.SeamFunctions
                 yInc = 1;
                 pixelCount = size.Height;
             }
-            else if (direction == Constants.Direction.HORIZONTAL)
+            else
             {
                 cumulativeEnergyMap = HorizontalCumulativeEnergyMap;
                 y = startOffset;
                 xInc = 1;
                 pixelCount = size.Width;
-            }
-            else
-            {
-                throw new InvalidEnumArgumentException();
             }
 
             if (pixelCount > startOffset)
@@ -90,7 +83,7 @@ namespace MagiCarver.SeamFunctions
             x += xInc;
             y += yInc;
 
-            if ((direction == Constants.Direction.VERTICAL) && (x > endOffset))
+            if ((direction == Constants.Direction.VERTICAL) && (x >= endOffset))
             {
                 startOffset--;
                 if (startOffset < 0)
@@ -120,11 +113,12 @@ namespace MagiCarver.SeamFunctions
 
                 y = startOffset;
             }
+
             while (x < size.Width && y < size.Height)
             {
                 while (x < size.Width && y < size.Height)
                 {
-                    int e0 = 0, e1 = 0, e2 = 0, lowestEnergy;
+                    int e0, e1, e2, lowestEnergy;
 
                     if (direction == Constants.Direction.VERTICAL)
                     {
@@ -132,7 +126,7 @@ namespace MagiCarver.SeamFunctions
                         e1 = Utilities.InBounds(x, y - 1, size) ? GetCumulativeEnergy(direction, x, y - 1) : int.MaxValue;
                         e2 = Utilities.InBounds(x + 1, y - 1, size) ? GetCumulativeEnergy(direction, x + 1, y - 1) : int.MaxValue;
                     }
-                    else if (direction == Constants.Direction.HORIZONTAL)
+                    else
                     {
                         e0 = Utilities.InBounds(x - 1, y - 1, size) ? GetCumulativeEnergy(direction, x - 1, y - 1) : int.MaxValue;
                         e1 = Utilities.InBounds(x - 1, y, size) ? GetCumulativeEnergy(direction, x - 1, y) : int.MaxValue;
@@ -141,25 +135,11 @@ namespace MagiCarver.SeamFunctions
 
                     if (e0 < e1)
                     {
-                        if (e0 < e2)
-                        {
-                            lowestEnergy = e0;
-                        }
-                        else
-                        {
-                            lowestEnergy = e2;
-                        }
+                        lowestEnergy = e0 < e2 ? e0 : e2;
                     }
                     else
                     {
-                        if (e1 < e2)
-                        {
-                            lowestEnergy = e1;
-                        }
-                        else
-                        {
-                            lowestEnergy = e2;
-                        }
+                        lowestEnergy = e1 < e2 ? e1 : e2;
                     }
 
                     cumulativeEnergyMap[x, y] =
@@ -204,35 +184,30 @@ namespace MagiCarver.SeamFunctions
                 }
             }
 
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                VerticalMapDirty = false;
-            }
-            else if (direction == Constants.Direction.HORIZONTAL)
-            {
-                HorizontalMapDirty = false;
-            }
+            //if (direction == Constants.Direction.VERTICAL)
+            //{
+            //    VerticalMapDirty = false;
+            //}
+            //else
+            //{
+            //    HorizontalMapDirty = false;
+            //}
 
             List<KeyValuePair<Point, double>> lowestSeamsEnergy;
+
+            x = y = xInc = yInc = 0;
 
             if (direction == Constants.Direction.VERTICAL)
             {
                 lowestSeamsEnergy = LowestVerticalSeamsEnergy;
-                x = 0;
                 y = size.Height - 1;
                 xInc = 1;
-                yInc = 0;
             }
-            else if (direction == Constants.Direction.HORIZONTAL)
+            else
             {
                 lowestSeamsEnergy = LowestHorizontalSeamsEnergy;
                 x = size.Width - 1;
-                y = 0;
-                xInc = 0;
                 yInc = 1;
-            }else
-            {
-                throw new ArgumentOutOfRangeException("Bad direction.");
             }
             
             lowestSeamsEnergy.Clear();
@@ -270,77 +245,63 @@ namespace MagiCarver.SeamFunctions
 
         private int GetCumulativeEnergy(Constants.Direction direction, int x, int y)
         {
-            switch (direction)
+            if (direction == Constants.Direction.VERTICAL)
             {
-                case Constants.Direction.VERTICAL:
-
-                    return VerticalCumulativeEnergyMap[x, y];
-                case Constants.Direction.HORIZONTAL:
-
-                    return HorizontalCumulativeEnergyMap[x, y];
-                case Constants.Direction.OPTIMAL:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("direction");
+                return VerticalCumulativeEnergyMap[x, y];
             }
 
-            throw new Exception("Should not happen.");
+            if (direction == Constants.Direction.HORIZONTAL)
+            {
+                return HorizontalCumulativeEnergyMap[x, y];
+            }
+
+            throw new ArgumentOutOfRangeException("direction");
         }
 
         public void RecomputeEnergyMapRange(Seam seam, Size size)
         {
-            if (seam.Direction == Constants.Direction.VERTICAL)
-            {
-                foreach (Point p in seam.PixelLocations(size))
-                {
-                    Utilities.ShiftArray(VerticalCumulativeEnergyMap, seam.Direction, p.Y, p.X, size.Width, int.MaxValue);
-                }
+            //if (seam.Direction == Constants.Direction.VERTICAL)
+            //{
+            //    foreach (Point p in seam.PixelLocations(size))
+            //    {
+            //        Utilities.ShiftArray(VerticalCumulativeEnergyMap, seam.Direction, p.Y, p.X, size.Width, int.MaxValue);
+            //    }
 
-                ComputeSubEnergyMap(Constants.Direction.VERTICAL, seam.StartIndex, seam.StartIndex, size);
-                HorizontalMapDirty = true;
-            }
-            else if (seam.Direction == Constants.Direction.HORIZONTAL)
-            {
-                foreach (Point p in seam.PixelLocations(size))
-                {
-                    Utilities.ShiftArray(HorizontalCumulativeEnergyMap, seam.Direction, p.X, p.Y, size.Height, int.MaxValue);
-                }
+            //    ComputeSubEnergyMap(Constants.Direction.VERTICAL, seam.StartIndex, seam.StartIndex, size);
+            //    HorizontalMapDirty = true;
+            //}
+            //else
+            //{
+            //    foreach (Point p in seam.PixelLocations(size))
+            //    {
+            //        Utilities.ShiftArray(HorizontalCumulativeEnergyMap, seam.Direction, p.X, p.Y, size.Height, int.MaxValue);
+            //    }
 
-                ComputeSubEnergyMap(Constants.Direction.HORIZONTAL, seam.StartIndex, seam.StartIndex, size);
-                VerticalMapDirty = true;
-            }
+            //    ComputeSubEnergyMap(Constants.Direction.HORIZONTAL, seam.StartIndex, seam.StartIndex, size);
+            //    VerticalMapDirty = true;
+            //}
         }
 
         public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k, int[,] indexMap)
         {
-            if ((k >= size.Width) && (k >= size.Height))
-            {
-                throw new ArgumentOutOfRangeException("k too big");
-            }
-
-            // Set initial values
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                // If the direction we're evaluating is "dirty," force a recompute
-                if (VerticalMapDirty)
-                {
-                    ComputeEntireEnergyMap(Constants.Direction.VERTICAL, size);
-                    HorizontalMapDirty = true;
-                }
-            }
-            else if (direction == Constants.Direction.HORIZONTAL)
-            {
-                // If the direction we're evaluating is "dirty," force a recompute
-                if (HorizontalMapDirty)
-                {
-                    ComputeEntireEnergyMap(Constants.Direction.HORIZONTAL, size);
-                    VerticalMapDirty = true;
-                }
-            }
-            else
-            {
-                throw new ArgumentOutOfRangeException("bad direction");
-            }
+            //if (direction == Constants.Direction.VERTICAL)
+            //{
+            //    // If the direction we're evaluating is "dirty," force a recompute
+            //    if (VerticalMapDirty)
+            //    {
+            //        ComputeEntireEnergyMap(Constants.Direction.VERTICAL, size);
+            //        HorizontalMapDirty = true;
+            //    }
+            //}
+            //else
+            //{
+            //    // If the direction we're evaluating is "dirty," force a recompute
+            //    if (HorizontalMapDirty)
+            //    {
+            //        ComputeEntireEnergyMap(Constants.Direction.HORIZONTAL, size);
+            //        VerticalMapDirty = true;
+            //    }
+            //}
 
             List<KeyValuePair<Point, double>> lowestSeamsEnergy = (direction == Constants.Direction.VERTICAL ? LowestVerticalSeamsEnergy : LowestHorizontalSeamsEnergy);
 
@@ -358,18 +319,7 @@ namespace MagiCarver.SeamFunctions
 
             indexMap[x, y] = k;
 
-            int pixelCount = 0, xInc = 0, yInc = 0;                           
-
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                yInc = 1;
-                pixelCount = size.Height;
-            }
-            else if (direction == Constants.Direction.HORIZONTAL)
-            {
-                xInc = 1;
-                pixelCount = size.Width;
-            }
+            int pixelCount = direction == Constants.Direction.VERTICAL ? size.Height : size.Width;
 
             Seam seam = new Seam
                             {
@@ -378,98 +328,48 @@ namespace MagiCarver.SeamFunctions
 
             int pixelIndex = pixelCount - 1;
 
-
-
             while (pixelIndex > 0)
             {           
                 KeyValuePair<Point, int> leftNeighbour;
                 KeyValuePair<Point, int> straightNeighbour;
                 KeyValuePair<Point, int> rightNeighbour;
+                KeyValuePair<Point, int> chosenNeighbour;
 
                 leftNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.LEFT);
                 straightNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.STRAIGHT);
                 rightNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.RIGHT);
                 
-								if (leftNeighbour.Value < straightNeighbour.Value)
-								{
-									if (leftNeighbour.Value < rightNeighbour.Value)
-									{
-										if (direction == Constants.Direction.VERTICAL)
-										{
-											seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
-										}
-										else if (direction == Constants.Direction.HORIZONTAL)
-										{
-										    seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
-										}
-                                        SetUsedPixel(direction, leftNeighbour.Key.X, leftNeighbour.Key.Y, size);
+				if (leftNeighbour.Value < straightNeighbour.Value)
+				{
+					chosenNeighbour = leftNeighbour.Value < rightNeighbour.Value ? leftNeighbour : rightNeighbour;
+				}
+				else
+				{
+					chosenNeighbour = !(straightNeighbour.Value < rightNeighbour.Value) ? rightNeighbour : straightNeighbour;
+				}
 
-									    x = leftNeighbour.Key.X;
-									    y = leftNeighbour.Key.Y;
+                if (chosenNeighbour.Equals(rightNeighbour))
+                {
+                    seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
+                }
+                else if (chosenNeighbour.Equals(leftNeighbour))
+                {
+                    seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.LEFT;
+                }
 
-                                        indexMap[x, y] = k;
-									}
-									else
-									{
-										if (direction == Constants.Direction.VERTICAL)
-										{
-											seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-										}
-										else if (direction == Constants.Direction.HORIZONTAL)
-										{
-										    seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-										}
-										SetUsedPixel(direction, rightNeighbour.Key.X, rightNeighbour.Key.Y, size);
+                SetUsedPixel(direction, chosenNeighbour.Key.X, chosenNeighbour.Key.Y, size);
 
-									    x = rightNeighbour.Key.X;
-									    y = rightNeighbour.Key.Y;
+                x = chosenNeighbour.Key.X;
+                y = chosenNeighbour.Key.Y;
 
-                                        indexMap[x, y] = k;
-									}
-								}
-								else
-								{
-									if (!(straightNeighbour.Value < rightNeighbour.Value))
-									{
-										if (direction == Constants.Direction.VERTICAL)
-										{
-											seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-										}
-										else if (direction == Constants.Direction.HORIZONTAL)
-										{
-                                            seam.PixelDirections[pixelIndex] = Constants.SeamPixelDirection.RIGHT;
-										}
-										SetUsedPixel(direction, rightNeighbour.Key.X, rightNeighbour.Key.Y, size);
+                indexMap[x, y] = k;
 
-                                        x = rightNeighbour.Key.X;
-                                        y = rightNeighbour.Key.Y;
-
-                                        indexMap[x, y] = k;
-									}
-									else
-									{
-										SetUsedPixel(direction, straightNeighbour.Key.X, straightNeighbour.Key.Y, size);
-
-									    x = straightNeighbour.Key.X;
-									    y = straightNeighbour.Key.Y;
-
-                                        indexMap[x, y] = k;
-									}
-								}
-
-								pixelIndex--;
-							
+				pixelIndex--;	
             }
 
             seam.Direction = direction;
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                seam.StartIndex = x;
-            }
-            else if (direction == Constants.Direction.HORIZONTAL)
-            {
-                seam.StartIndex = y;
-            }
+
+            seam.StartIndex = direction == Constants.Direction.VERTICAL ? x : y;
 
             return seam;
         }
@@ -479,61 +379,49 @@ namespace MagiCarver.SeamFunctions
             int currentX = x, currentY = y, currentEnergy = int.MaxValue;
             int xInc = 0, yInc = 0;
 
-            switch (direction)
+            if (direction == Constants.Direction.VERTICAL)
             {
-                case Constants.Direction.VERTICAL:
-
-                    switch (type)
-                    {
-                        case Constants.NeighbourType.LEFT:
-                            currentY--;
-                            xInc = -1;
-                            break;
-                        case Constants.NeighbourType.RIGHT:
-                            currentY--;
-                            xInc = 1;
-                            break;
-                        case Constants.NeighbourType.STRAIGHT:
-                            return new KeyValuePair<Point, int>(new Point(currentX, currentY - 1),
-                                                                GetUsedPixel(direction, currentX, currentY - 1)
-                                                                    ? currentEnergy
-                                                                    : GetCumulativeEnergy(direction, currentX,
-                                                                                          currentY - 1));
-                            yInc = -1;
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException("type");
-                    }
-                    break;
-                case Constants.Direction.HORIZONTAL:
-
-
-                    switch (type)
-                    {
-                        case Constants.NeighbourType.LEFT:
-                            currentX--;
-                            yInc = 1;
-                            break;
-                        case Constants.NeighbourType.RIGHT:
-                            currentX--;
-                            yInc = -1;
-                            break;
-                        case Constants.NeighbourType.STRAIGHT:
-                            return new KeyValuePair<Point, int>(new Point(currentX - 1, currentY),
-                                                                GetUsedPixel(direction, currentX - 1, currentY)
-                                                                    ? currentEnergy
-                                                                    : GetCumulativeEnergy(direction, currentX - 1,
-                                                                                          currentY));
-                            xInc = -1;
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException("type");
-                    }
-                    break;
-                case Constants.Direction.OPTIMAL:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("direction");
+                switch (type)
+                {
+                    case Constants.NeighbourType.LEFT:
+                        currentY--;
+                        xInc = -1;
+                        break;
+                    case Constants.NeighbourType.RIGHT:
+                        currentY--;
+                        xInc = 1;
+                        break;
+                    case Constants.NeighbourType.STRAIGHT:
+                        return new KeyValuePair<Point, int>(new Point(currentX, currentY - 1), 
+                            GetUsedPixel(direction, currentX, currentY - 1) ? 
+                            currentEnergy : GetCumulativeEnergy(direction, currentX, currentY - 1));
+                        //yInc = -1;
+                        //break;
+                    default:
+                        throw new ArgumentOutOfRangeException("type");
+                }
+            }
+            else
+            {
+                switch (type)
+                {
+                    case Constants.NeighbourType.LEFT:
+                        currentX--;
+                        yInc = 1;
+                        break;
+                    case Constants.NeighbourType.RIGHT:
+                        currentX--;
+                        yInc = -1;
+                        break;
+                    case Constants.NeighbourType.STRAIGHT:
+                        return new KeyValuePair<Point, int>(new Point(currentX - 1, currentY), 
+                            GetUsedPixel(direction, currentX - 1, currentY) ? 
+                            currentEnergy : GetCumulativeEnergy(direction, currentX - 1, currentY));
+                        //xInc = -1;
+                        //break;
+                    default:
+                        throw new ArgumentOutOfRangeException("type");
+                }
             }
 
             while (Utilities.InBounds(currentX += xInc, currentY += yInc, size))
@@ -549,5 +437,7 @@ namespace MagiCarver.SeamFunctions
 
             return new KeyValuePair<Point, int>(new Point(currentX, currentY), currentEnergy);
         }
+
+        #endregion
     }
 }
