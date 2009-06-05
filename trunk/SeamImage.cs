@@ -90,14 +90,22 @@ namespace MagiCarver
         {
             EnergyFunction = energyFunction;
 
-            SeamFunction = new CumulativeEnergy {EnergyFunction = EnergyFunction};
-
             Bitmap = bitmap;
+
+            SeamFunction = new CumulativeEnergy {EnergyFunction = EnergyFunction};
 
             RecomputeEntireEnergy();
 
             HorizontalIndexMap = new int[CurrentWidth, CurrentHeight];
             VerticalIndexMap = new int[CurrentWidth, CurrentHeight];
+
+            for (int i = 0; i < CurrentWidth; ++i)
+            {
+                for (int j = 0; j < CurrentHeight; ++j)
+                {
+                    HorizontalIndexMap[i, j] = VerticalIndexMap[i, j] = int.MaxValue;
+                }
+            }
         }
 
         #endregion
@@ -232,6 +240,11 @@ namespace MagiCarver
 
             CarveSeams(direction, k);
 
+            //for (int i = 0; i < k; ++i)
+            //{
+            //    SeamFunction.RecomputeEnergyMapRange(removedSeams[i], ImageSize);
+            //}
+
             OnImageChanged();
 
             //EnergyFunction.ComputeLocalEnergy(BitData, ImageSize, lowestEnergySeam);
@@ -283,9 +296,13 @@ namespace MagiCarver
                             dest[0] = src[0];
                             dest[1] = src[1];
                             dest[2] = src[2];
+
                             src += 3;
                             dest += 3;
                         }
+
+                        dest += newBmd.Stride - newBmd.Width * 3;
+                        src += oldBmd.Stride - oldBmd.Width * 3;
                     }
                 }
             }else
@@ -322,11 +339,10 @@ namespace MagiCarver
                 } 
             }
 
-            //foreach (List<Point> pointList in removedPixels.Values)
-            //{
-            //    OnColorSeam(pointList);  
-            //}
-
+            foreach (List<Point> pointList in removedPixels.Values)
+            {
+                OnColorSeam(pointList);  
+            }
             
             newBitmap.UnlockBits(newBmd);
             _bitmap.UnlockBits(oldBmd);
@@ -349,7 +365,7 @@ namespace MagiCarver
             {
                 for (int x = 0; x < energyMapBmd.Width; x++)
                 {
-                    byte grayValue = (byte) (EnergyFunction.EnergyMap[x, y] < 0 ? 0 : EnergyFunction.EnergyMap[x, y] > 254 ? 254 : EnergyFunction.EnergyMap[x, y]);
+                    byte grayValue = (byte)(EnergyFunction.EnergyMap[x, y] < 0 ? 0 : EnergyFunction.EnergyMap[x, y] > 254 ? 254 : EnergyFunction.EnergyMap[x, y]);
                     SetPixel(energyMapBmd, x, y, grayValue, grayValue, grayValue);
                 }
             }
@@ -390,7 +406,7 @@ namespace MagiCarver
                 }
 
                 EnergyFunction.EnergyMap[userEnergy.Key.X, userEnergy.Key.Y] = 
-                    (userEnergy.Value == Constants.EnergyType.MAX ? 50000 : -50000);
+                    (userEnergy.Value == Constants.EnergyType.MAX ? int.MaxValue : int.MinValue);
             }
         }
 
@@ -401,12 +417,12 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, CurrentHeight);
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, 1);
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, CurrentWidth);
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, 1);
                                               });
 
             tHorizontal.Start();
