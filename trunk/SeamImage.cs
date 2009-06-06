@@ -447,9 +447,9 @@ namespace MagiCarver
                 {
                     continue;
                 }
-
+                // ZTODO: Fix this. It should be something defined and not '10000'...
                 EnergyFunction.EnergyMap[userEnergy.Key.X, userEnergy.Key.Y] = 
-                    (userEnergy.Value == Constants.EnergyType.MAX ? int.MaxValue : int.MinValue);
+                    (userEnergy.Value == Constants.EnergyType.MAX ? 10000 : -10000);
             }
         }
 
