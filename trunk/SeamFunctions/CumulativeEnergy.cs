@@ -11,8 +11,8 @@ namespace MagiCarver.SeamFunctions
 
         public EnergyFunction EnergyFunction { get; set; }
 
-        private int[,] VerticalCumulativeEnergyMap { get; set; }
-        private int[,] HorizontalCumulativeEnergyMap { get; set; }
+        public int[,] VerticalCumulativeEnergyMap { get; set; }
+        public int[,] HorizontalCumulativeEnergyMap { get; set; }
 
         private bool[,] VerticalCumulativeEnergyMapUsed { get; set; }
         private bool[,] HorizontalCumulativeEnergyMapUsed { get; set; }
@@ -193,9 +193,14 @@ namespace MagiCarver.SeamFunctions
             //    HorizontalMapDirty = false;
             //}
 
+            ComputeLowestSeamEnergy(direction, size);
+        }
+
+        private void ComputeLowestSeamEnergy(Constants.Direction direction, Size size)
+        {
             List<KeyValuePair<Point, double>> lowestSeamsEnergy;
 
-            x = y = xInc = yInc = 0;
+            int x = 0, y = 0, xInc = 0, yInc = 0;
 
             if (direction == Constants.Direction.VERTICAL)
             {
@@ -209,7 +214,7 @@ namespace MagiCarver.SeamFunctions
                 x = size.Width - 1;
                 yInc = 1;
             }
-            
+
             lowestSeamsEnergy.Clear();
 
             while ((x < size.Width) && (y < size.Height))
@@ -258,28 +263,85 @@ namespace MagiCarver.SeamFunctions
             throw new ArgumentOutOfRangeException("direction");
         }
 
-        public void RecomputeEnergyMapRange(Seam seam, Size size)
+        public void RecomputeEnergyMapRange(Size size, Size oldSize, Constants.Direction direction)
         {
-            //if (seam.Direction == Constants.Direction.VERTICAL)
-            //{
-            //    foreach (Point p in seam.PixelLocations(size))
-            //    {
-            //        Utilities.ShiftArray(VerticalCumulativeEnergyMap, seam.Direction, p.Y, p.X, size.Width, int.MaxValue);
-            //    }
+            int maxIndex = int.MinValue, minIndex = int.MaxValue, count = 0;
 
-            //    ComputeSubEnergyMap(Constants.Direction.VERTICAL, seam.StartIndex, seam.StartIndex, size);
-            //    HorizontalMapDirty = true;
-            //}
-            //else
-            //{
-            //    foreach (Point p in seam.PixelLocations(size))
-            //    {
-            //        Utilities.ShiftArray(HorizontalCumulativeEnergyMap, seam.Direction, p.X, p.Y, size.Height, int.MaxValue);
-            //    }
+            if (direction == Constants.Direction.VERTICAL)
+            {
+                for (int j = 0; j < oldSize.Width; ++j)
+                {
+                    if (VerticalCumulativeEnergyMap[j, 0] == -1)
+                    {
+                        if (j > maxIndex)
+                        {
+                            maxIndex = j;
+                        }
 
-            //    ComputeSubEnergyMap(Constants.Direction.HORIZONTAL, seam.StartIndex, seam.StartIndex, size);
-            //    VerticalMapDirty = true;
-            //}
+                        if (j < minIndex)
+                        {
+                            minIndex = j;
+                        }
+
+                        count++;
+                    }
+                }
+
+                for (int i = 0; i < oldSize.Height; ++i)
+                {
+                    for (int j = 0; j < oldSize.Width; ++j)
+                    {
+                        if (VerticalCumulativeEnergyMap[j, i] == -1)
+                        {
+                            if (j < oldSize.Width - 1)
+                            {
+                                VerticalCumulativeEnergyMap[j, i] = VerticalCumulativeEnergyMap[j + 1, i];
+                                j++;
+                            }
+                        }
+                    }
+                }
+                VerticalCumulativeEnergyMapUsed = new bool[size.Width, size.Height];
+            }
+            else
+            {
+
+                for (int j = 0; j < oldSize.Height; ++j)
+                {
+                    if (HorizontalCumulativeEnergyMap[0, j] == -1)
+                    {
+                        if (j > maxIndex)
+                        {
+                            maxIndex = j;
+                        }
+
+                        if (j < minIndex)
+                        {
+                            minIndex = j;
+                        }
+
+                        count++;
+                    }
+                }
+
+                for (int i = 0; i < oldSize.Width; ++i)
+                {
+                    for (int j = 0; j < oldSize.Height; ++j)
+                    {
+                        if (HorizontalCumulativeEnergyMap[i, j] == -1)
+                        {
+                            if (i < oldSize.Height - 1)
+                            {
+                                HorizontalCumulativeEnergyMap[i, j] = HorizontalCumulativeEnergyMap[i, j + 1];
+                                i++;
+                            }
+                        }
+                    }
+                }
+                HorizontalCumulativeEnergyMapUsed = new bool[size.Width, size.Height];
+            }
+
+            ComputeSubEnergyMap(direction, minIndex, maxIndex - (count - 1), size);
         }
 
         public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k, int[,] indexMap)

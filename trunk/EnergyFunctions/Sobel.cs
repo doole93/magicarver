@@ -80,32 +80,57 @@ namespace MagiCarver.EnergyFunctions
             }
         }
 
-        public override void ComputeLocalEnergy(BitmapData bitmapData, Size size, Seam seam)
+        public override void ComputeLocalEnergy(BitmapData bitmapData, Size size, Constants.Direction direction)
         {
             if (bitmapData != null)
             {
-                foreach (Point p in seam.PixelLocations(size))
+                if (direction == Constants.Direction.VERTICAL)
                 {
-                    if (seam.Direction == Constants.Direction.VERTICAL)
+                    for (int i = 0; i < size.Height; ++i)
                     {
-                        if (p.X > 0)
+                        for (int j = 0; j < size.Width; ++j)
                         {
-                            EnergyMap[p.X - 1, p.Y] = GetSobelEnergy(bitmapData, p.X - 1, p.Y, size);
-                        }
-                        if (p.X < size.Width)
-                        {
-                            EnergyMap[p.X, p.Y] = GetSobelEnergy(bitmapData, p.X, p.Y, size);
+                            EnergyMap[j, i] =
+                                    GetSobelEnergy(bitmapData, j, i, new Size(bitmapData.Width, bitmapData.Height));
+
+                            if (EnergyMap[j, i] == -1)
+                            {
+                                if (j > 0)
+                                {
+                                    EnergyMap[j - 1, i] = 
+                                        GetSobelEnergy(bitmapData, j - 1, i, new Size(bitmapData.Width, bitmapData.Height));
+                                }
+
+                                if (j < size.Width - 1)
+                                {
+                                    j++;
+                                }
+                            }
                         }
                     }
-                    else
+                }
+                else
+                {
+                    for (int i = 0; i < size.Width; ++i)
                     {
-                        if (p.Y > 0)
+                        for (int j = 0; j < size.Height; ++j)
                         {
-                            EnergyMap[p.X, p.Y - 1] = GetSobelEnergy(bitmapData, p.X, p.Y - 1, size);
-                        }
-                        if (p.Y < size.Height)
-                        {
-                            EnergyMap[p.X, p.Y] = GetSobelEnergy(bitmapData, p.X, p.Y, size);
+                            EnergyMap[i, j] =
+                                GetSobelEnergy(bitmapData, i, j, new Size(bitmapData.Width, bitmapData.Height));
+
+                            if (EnergyMap[i, j] == -1)
+                            {
+                                if (i > 0)
+                                {
+                                    EnergyMap[i - 1, j] =
+                                        GetSobelEnergy(bitmapData, i - 1, j, new Size(bitmapData.Width, bitmapData.Height));
+                                }
+
+                                if (i < size.Height - 1)
+                                {
+                                    i++;
+                                }
+                            }
                         }
                     }
                 }

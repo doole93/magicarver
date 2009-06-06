@@ -32,6 +32,9 @@ namespace MagiCarver
         private DrawingAttributes   Highlighter { get; set; }
         private bool                FinishedUserInput { get; set; }
 
+        private object Lock = new object();
+        private bool busy;
+
         #endregion
 
         #region CTors
@@ -152,8 +155,8 @@ namespace MagiCarver
                               {
                                   IsHighlighter = true,
                                   StylusTip = StylusTip.Rectangle,
-                                  Height = 8,
-                                  Width = 8
+                                  Height = 25,
+                                  Width = 25
                               };
 
             theCanvas.DefaultDrawingAttributes = Highlighter;
@@ -261,7 +264,34 @@ namespace MagiCarver
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            if (e.WidthChanged && FinishedUserInput)
+            {
+                WorkInProgress(true);
 
+                Thread t1 = new Thread(delegate()
+                {
+                    SeamImage.Carve(Constants.Direction.VERTICAL, PaintSeam, (int)(e.PreviousSize.Width - e.NewSize.Width));
+                    WorkInProgress(false);
+                });
+
+                t1.Start();
+
+                t1.Join();
+            }
+            else if (e.HeightChanged && FinishedUserInput)
+            {
+                WorkInProgress(true);
+
+                Thread t1 = new Thread(delegate()
+                {
+                    SeamImage.Carve(Constants.Direction.HORIZONTAL, PaintSeam, (int)(e.PreviousSize.Height - e.NewSize.Height));
+                    WorkInProgress(false);
+                });
+
+                t1.Start();
+
+                t1.Join();
+            }
         }
 
         private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)
@@ -305,7 +335,7 @@ namespace MagiCarver
                     Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) (() =>
                       {   SeamImage.SetEnergy(theCanvas.Strokes);
                           SeamImage.RecomputeEntireMap();
-                          SeamImage.CalculateIndexMaps();
+                          SeamImage.CalculateIndexMaps(Constants.Direction.OPTIMAL);
                           WorkInProgress(false);
                     })));
 
@@ -331,11 +361,10 @@ namespace MagiCarver
             txtResolution.Text = size.Width + " x " + size.Height;
             if (bitmapName != null)
             {
-                Title = Constants.TITLE + " - " + bitmapName;      
+                Title = Constants.TITLE + " - " + bitmapName;
+                Width = bitmap.Width;
+                Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
             }
-
-            Width = bitmap.Width;
-            Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
 
         }
 
@@ -359,7 +388,7 @@ namespace MagiCarver
 
                 if (!isWorking)
                 {
-                    theCanvas.Strokes.Clear();    
+                    theCanvas.Strokes.Clear();
                 }
             });
         }

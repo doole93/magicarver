@@ -19,6 +19,6 @@ namespace MagiCarver.EnergyFunctions
 
         public abstract void ComputeEnergy(BitmapData bitmapData, Size size);
 
-        public abstract void ComputeLocalEnergy(BitmapData bitmapData, Size size, Seam seam);
+        public abstract void ComputeLocalEnergy(BitmapData bitmapData, Size size, Constants.Direction direction);
     }
 }
