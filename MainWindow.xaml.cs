@@ -192,12 +192,31 @@ namespace MagiCarver
 
         private void Carve_Clicked(object sender, RoutedEventArgs e)
         {
+            SizeChanged -= Window_SizeChanged;
+            SizeChanged += Window_DummySizeChanged;
+
             WorkInProgress(true);
 
-            Thread t1 = new Thread(delegate() { SeamImage.Carve(Direction, PaintSeam, 1);
-            WorkInProgress(false);});
+            Thread t1 = new Thread(delegate() {
+                SeamImage.Carve(Direction, PaintSeam, 100);
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            });
 
             t1.Start();
+        }
+
+        private void UpdateStatus(string msg)
+        {
+            if (!String.IsNullOrEmpty(msg))
+            {
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => txtStatus.Text = msg));
+            }
+        }
+
+        private void Window_DummySizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            SizeChanged -= Window_DummySizeChanged;
+            SizeChanged += Window_SizeChanged;
         }
 
         private void ChangeMapView_Clicked(object sender, RoutedEventArgs e)
@@ -264,28 +283,28 @@ namespace MagiCarver
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (e.WidthChanged && FinishedUserInput)
+            if (e.WidthChanged && FinishedUserInput && e.PreviousSize.Width > e.NewSize.Width && SeamImage.ImageSize.Width > e.PreviousSize.Width - e.NewSize.Width)
             {
                 WorkInProgress(true);
 
                 Thread t1 = new Thread(delegate()
                 {
                     SeamImage.Carve(Constants.Direction.VERTICAL, PaintSeam, (int)(e.PreviousSize.Width - e.NewSize.Width));
-                    WorkInProgress(false);
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                 });
 
                 t1.Start();
 
                 t1.Join();
             }
-            else if (e.HeightChanged && FinishedUserInput)
+            if (e.HeightChanged && FinishedUserInput && e.PreviousSize.Height > e.NewSize.Height && SeamImage.ImageSize.Height > e.PreviousSize.Height - e.NewSize.Height)
             {
                 WorkInProgress(true);
 
                 Thread t1 = new Thread(delegate()
                 {
                     SeamImage.Carve(Constants.Direction.HORIZONTAL, PaintSeam, (int)(e.PreviousSize.Height - e.NewSize.Height));
-                    WorkInProgress(false);
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                 });
 
                 t1.Start();
@@ -331,13 +350,20 @@ namespace MagiCarver
 
                 WorkInProgress(true);
 
-                Thread t1 = new Thread(() => 
-                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate) (() =>
-                      {   SeamImage.SetEnergy(theCanvas.Strokes);
-                          SeamImage.RecomputeEntireMap();
-                          SeamImage.CalculateIndexMaps(Constants.Direction.OPTIMAL);
-                          WorkInProgress(false);
-                    })));
+                StrokeCollection strokes = theCanvas.Strokes.Clone();
+
+                Thread t1 = new Thread(delegate()
+                {
+                    SeamImage.SetEnergy(strokes);
+                   SeamImage.RecomputeEntireMap();
+                   SeamImage.CalculateIndexMaps(Constants.Direction.OPTIMAL);
+                   Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
+                    {
+                        WorkInProgress(false);
+                        ResizeMode = ResizeMode.CanResizeWithGrip;
+                    }));
+                                               
+               });
 
                 t1.Start();
             }
@@ -370,27 +396,24 @@ namespace MagiCarver
 
         private void WorkInProgress(bool isWorking)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
-            {
-                theCanvas.IsEnabled = !isWorking;
-                menuItemEnergyMap.IsEnabled = !isWorking;
-                menuItemNormal.IsEnabled = !isWorking;
-                menuItemNormal.IsChecked = !isWorking;
-                menuItemSaveImage.IsEnabled = !isWorking;
-                ToggleHighEng.IsEnabled = !FinishedUserInput && !isWorking;
-                ToggleLowEng.IsEnabled = !FinishedUserInput && !isWorking;
-                ToggleLowEng.IsChecked = false;
-                ToggleHighEng.IsChecked = false;
-                DoneEditingButton.IsEnabled = !FinishedUserInput && !isWorking;
-                menuItemCarve.IsEnabled = FinishedUserInput && !isWorking;
-                menuItemAddSeam.IsEnabled = FinishedUserInput && !isWorking;
-                txtStatus.Text = isWorking ? Constants.TEXT_WORKING : Constants.TEXT_READY;
+            txtStatus.Text = isWorking ? Constants.TEXT_WORKING : Constants.TEXT_READY;
+            theCanvas.IsEnabled = !isWorking;
+            menuItemEnergyMap.IsEnabled = !isWorking;
+            menuItemNormal.IsEnabled = !isWorking;
+            menuItemNormal.IsChecked = !isWorking;
+            menuItemSaveImage.IsEnabled = !isWorking;
+            ToggleHighEng.IsEnabled = !FinishedUserInput && !isWorking;
+            ToggleLowEng.IsEnabled = !FinishedUserInput && !isWorking;
+            ToggleLowEng.IsChecked = false;
+            ToggleHighEng.IsChecked = false;
+            DoneEditingButton.IsEnabled = !FinishedUserInput && !isWorking;
+            menuItemCarve.IsEnabled = FinishedUserInput && !isWorking;
+            menuItemAddSeam.IsEnabled = FinishedUserInput && !isWorking;
 
-                if (!isWorking)
-                {
-                    theCanvas.Strokes.Clear();
-                }
-            });
+            if (!isWorking)
+            {
+                theCanvas.Strokes.Clear();
+            }
         }
 
         #endregion

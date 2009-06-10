@@ -1,7 +1,7 @@
 ﻿<Window x:Class="MagiCarver.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    SizeToContent="WidthAndHeight" Loaded="Window_Loaded" ResizeMode="CanResize" SizeChanged="Window_SizeChanged">
+    SizeToContent="WidthAndHeight" Loaded="Window_Loaded" ResizeMode="NoResize" SizeChanged="Window_SizeChanged" WindowStyle="ToolWindow">
     
     <!-- Need to allow user to resize window -->
     
@@ -50,7 +50,7 @@
             </Button>
         </ToolBar>
 
-            <InkCanvas Grid.Row="2" IsEnabled="false" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
+            <InkCanvas Background="AliceBlue" Grid.Row="2" IsEnabled="false" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
                 <InkCanvas.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
