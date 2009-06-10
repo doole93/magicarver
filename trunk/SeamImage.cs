@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.Drawing;
 using System.Threading;
+using System.Windows;
 using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -207,6 +208,10 @@ namespace MagiCarver
         {
             if (direction == Constants.Direction.VERTICAL)
             {
+                if (k >= ImageSize.Width)
+                {
+                    k = ImageSize.Width - 1;
+                }
                 if (VerticalSeams.Count < k)
                 {
                     InvalidateAndRefresh(direction);
@@ -234,16 +239,21 @@ namespace MagiCarver
 
             OnImageChanged();
 
-            Thread.Sleep(1000);
-
             OnOperationComplete();
         }
 
         private void InvalidateAndRefresh(Constants.Direction direction)
         {
-            EnergyFunction.ComputeLocalEnergy(BitData, OldSize, direction);
+            EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, direction);
 
-            SeamFunction.RecomputeEnergyMapRange(ImageSize, OldSize, direction);
+          //  DateTime a = DateTime.Now;
+
+        //    SeamFunction.RecomputeEnergyMapRange(ImageSize, OldSize, direction);
+            SeamFunction.ComputeEntireEnergyMap(direction, ImageSize);
+
+          //  TimeSpan b = DateTime.Now - a;
+
+         //   MessageBox.Show(b.Milliseconds.ToString());
 
             CalculateIndexMaps(direction);
 
@@ -284,12 +294,12 @@ namespace MagiCarver
             {
                 unsafe
                 {
-                    byte* dest = (byte*)newBmd.Scan0;
-                    byte* src = (byte*)oldBmd.Scan0;
-
                     for (int i = 0; i < OldSize.Height; ++i)
                     {
                         int skipCount = 0;
+
+                        byte* dest = (byte*)newBmd.Scan0 + i * newBmd.Stride;
+                        byte* src = (byte*)oldBmd.Scan0 + i * oldBmd.Stride;
 
                         for (int j = 0; j < OldSize.Width; ++j)
                         {
@@ -300,15 +310,16 @@ namespace MagiCarver
                                     EnergyFunction.EnergyMap[j, i] = -1;
                                     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
 
-                                    if (!removedPixels.ContainsKey(indexMap[j, i]))
-                                    {
-                                        removedPixels.Add(indexMap[j, i], new List<Point>());
-                                    }
+                                    //if (!removedPixels.ContainsKey(indexMap[j, i]))
+                                    //{
+                                    //    removedPixels.Add(indexMap[j, i], new List<Point>());
+                                    //}
 
-                                    removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
-                                }else
+                                    //removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
+                                }
+                                else
                                 {
-                                    skipCount++;
+                                    //skipCount++;
                                 }
 
                                 src += 3;
@@ -322,9 +333,6 @@ namespace MagiCarver
                             src += 3;
                             dest += 3;
                         }
-
-                        dest += newBmd.Stride - newBmd.Width * 3;
-                        src += oldBmd.Stride - oldBmd.Width * 3;
                     }
                 }
             }else
@@ -347,12 +355,12 @@ namespace MagiCarver
                                     EnergyFunction.EnergyMap[i, j] = -1;
                                     SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
 
-                                    if (!removedPixels.ContainsKey(indexMap[i, j]))
-                                    {
-                                        removedPixels.Add(indexMap[i, j], new List<Point>());
-                                    }
+                                    //if (!removedPixels.ContainsKey(indexMap[i, j]))
+                                    //{
+                                    //    removedPixels.Add(indexMap[i, j], new List<Point>());
+                                    //}
 
-                                    removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
+                                    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
                                 }else
                                 {
                                     skipCount++;
@@ -372,10 +380,10 @@ namespace MagiCarver
                 } 
             }
 
-            foreach (List<Point> pointList in removedPixels.Values)
-            {
-                OnColorSeam(pointList);
-            }
+            //foreach (List<Point> pointList in removedPixels.Values)
+            //{
+            //    OnColorSeam(pointList);
+            //}
             
             newBitmap.UnlockBits(newBmd);
 
@@ -424,6 +432,7 @@ namespace MagiCarver
             {
                 bool isHigh = stroke.DrawingAttributes.Color == Colors.Yellow ? true : false;
 
+                // ZTODO: Need parallel foreach? Need parallel here.
                 foreach (StylusPoint point in stroke.StylusPoints)
                 {
                     for (int i = 0; i < stroke.DrawingAttributes.Width; ++i)
@@ -448,8 +457,8 @@ namespace MagiCarver
                     continue;
                 }
                 // ZTODO: Fix this. It should be something defined and not '10000'...
-                EnergyFunction.EnergyMap[userEnergy.Key.X, userEnergy.Key.Y] = 
-                    (userEnergy.Value == Constants.EnergyType.MAX ? 10000 : -10000);
+                EnergyFunction.EnergyMap[userEnergy.Key.X, userEnergy.Key.Y] =
+                    (userEnergy.Value == Constants.EnergyType.MAX ? Constants.MAX_ENERGY : Constants.MIN_ENERGY);
             }
         }
 
@@ -492,12 +501,12 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, 400);
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, 300);
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, 400);
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(300, ImageSize.Width));
                                               });
 
             if (direction != Constants.Direction.VERTICAL)
