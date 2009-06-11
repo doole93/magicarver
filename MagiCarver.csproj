@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.21022</ProductVersion>
+    <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{20B9D49E-D57C-45EE-8123-16B6C2715F56}</ProjectGuid>
     <OutputType>WinExe</OutputType>
@@ -118,7 +118,8 @@
     <Resource Include="Resources\Done.png" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Libraries\" />
+    <Content Include="Libraries\System.Threading.dll" />
+    <Content Include="Libraries\WPFToolkit.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
