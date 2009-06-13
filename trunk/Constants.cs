@@ -9,6 +9,7 @@
 
         public const string TEXT_READY = "Ready";
         public const string TEXT_WORKING = "Working...";
+        public const string TEXT_REFRESHING_CACHE = "Refreshing cache...";
 
         public const int MAX_ENERGY = 10000;
         public const int MIN_ENERGY = -10000;

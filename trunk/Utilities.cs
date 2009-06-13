@@ -33,16 +33,11 @@ namespace MagiCarver
 
         public static byte GetPixel(BitmapData bitmapData, Size size, int x, int y)
         {
-            if (InBounds(x, y, size))
-            {
-                unsafe
+            unsafe
                 {
                     byte* row = (byte*)bitmapData.Scan0 + (y * bitmapData.Stride) + (x * 3);
                     return (byte)((0.2126 * row[2]) + (0.7152 * row[1]) + (0.0722 * row[0]));
                 }
-            }
-            
-            return byte.MaxValue;
         }
 
         public static bool InBounds(int x, int y, Size size)

@@ -7,15 +7,15 @@ namespace MagiCarver.EnergyFunctions
     {
         public int[,] EnergyMap { get; protected set; }
 
-        public int GetEnergy(int x, int y, Size size)
-        {
-            if (Utilities.InBounds(x, y, size))
-            {
-                return EnergyMap[x, y];
-            }
+        //public int GetEnergy(int x, int y, Size size)
+        //{
+        //    if (Utilities.InBounds(x, y, size))
+        //    {
+        //        return EnergyMap[x, y];
+        //    }
 
-            return byte.MaxValue;
-        }
+        //    return byte.MaxValue;
+        //}
 
         public abstract void ComputeEnergy(BitmapData bitmapData, Size size);
 
