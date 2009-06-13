@@ -255,18 +255,18 @@ namespace MagiCarver
 
         private void AddSeam_Clicked(object sender, RoutedEventArgs e)
         {
-            //menuItemCarve.IsEnabled = false;
-            //menuItemAddSeam.IsEnabled = false;
-            //txtStatus.Text = Constants.TEXT_WORKING;
+            SizeChanged -= Window_SizeChanged;
+            SizeChanged += Window_DummySizeChanged;
 
-            //Thread t1 = new Thread(delegate()
-            //{
-            //    Size minimumSize = new Size(SeamImage.ImageSize.Width + 5, SeamImage.ImageSize.Height + 5);
-            //    SeamImage.AddSeam(Direction, minimumSize, PaintSeam);
-            //});
+            WorkInProgress(true);
 
-            //t1.Start();
-            MessageBox.Show("Under Construction.");
+            Thread t1 = new Thread(delegate()
+            {
+                SeamImage.Add(Direction, PaintSeam, 50);
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            });
+
+            t1.Start();
         }
 
         private void RowDefinition_Loaded(object sender, RoutedEventArgs e)
@@ -307,6 +307,20 @@ namespace MagiCarver
 
                 t1.Join();
             }
+            //if (e.WidthChanged && FinishedUserInput && e.PreviousSize.Width < e.NewSize.Width)
+            //{
+            //    WorkInProgress(true);
+
+            //    Thread t1 = new Thread(delegate()
+            //    {
+            //        SeamImage.Add(Constants.Direction.VERTICAL, PaintSeam, (int)(e.NewSize.Width - e.PreviousSize.Width));
+            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            //    });
+
+            //    t1.Start();
+
+            //    t1.Join();
+            //}
         }
 
         private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)

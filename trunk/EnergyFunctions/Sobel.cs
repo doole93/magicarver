@@ -102,7 +102,7 @@ namespace MagiCarver.EnergyFunctions
                     Parallel.For(0, newSize.Height, delegate(int i)
                      {
                          int skipCount = 0;
-
+                         //
                          for (int j = 0; j < newSize.Width; ++j)
                          {
                              if (EnergyMap[j + skipCount, i] == -1)

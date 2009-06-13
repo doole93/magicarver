@@ -312,7 +312,7 @@ namespace MagiCarver.SeamFunctions
 
                 x = chosenNeighbour.Key.X;
                 y = chosenNeighbour.Key.Y;
-
+                //
                 indexMap[x, y] = k;
 
                 pixelIndex--;

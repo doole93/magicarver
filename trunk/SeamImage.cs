@@ -255,6 +255,27 @@ namespace MagiCarver
             OnOperationComplete();
         }
 
+        public void Add(Constants.Direction direction, bool paintSeam, int k)
+        {
+            
+
+            // DateTime a = DateTime.Now;
+
+            AddSeams(direction, k - 1);
+            //   CarveSeamsNew(direction, VerticalSeams, k);
+            // InvalidateAndRefresh(direction);
+
+            //     TimeSpan b = DateTime.Now - a;
+
+            //          Console.WriteLine(b.Milliseconds);
+
+            InvalidateAndRefresh(direction);
+
+            OnImageChanged();
+
+            OnOperationComplete();
+        }
+
         private void CarveSeamsNew(Constants.Direction direction, List<Seam> seams, int k)
         {
             int newWidth = direction == Constants.Direction.VERTICAL ? CurrentWidth - k : CurrentWidth;
@@ -509,12 +530,200 @@ namespace MagiCarver
             CurrentHeight = newHeight;
         }
 
+        private void AddSeams(Constants.Direction direction, int k)
+        {
+            int newWidth = direction == Constants.Direction.VERTICAL ? CurrentWidth + k + 1 : CurrentWidth;
+            int newHeight = direction == Constants.Direction.HORIZONTAL ? CurrentHeight + k + 1 : CurrentHeight;
+
+            Bitmap newBitmap = new Bitmap(newWidth, newHeight, _bitmap.PixelFormat);
+
+            BitmapData newBmd = newBitmap.LockBits(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height),
+                                                   ImageLockMode.WriteOnly, newBitmap.PixelFormat);
+
+            BitmapData oldBmd;
+
+            //if (OldBitmap == null)
+            //{
+               oldBmd = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
+                                                   ImageLockMode.ReadOnly, _bitmap.PixelFormat);
+            //}
+            //else
+            //{
+            //    oldBmd = OldBitmap.LockBits(new Rectangle(0, 0, OldBitmap.Width, OldBitmap.Height),
+            //                                       ImageLockMode.ReadOnly, OldBitmap.PixelFormat);
+            //}
+
+            int[,] indexMap = (direction == Constants.Direction.VERTICAL ? VerticalIndexMap : HorizontalIndexMap);
+
+            //     Dictionary<int, List<Point>> removedPixels = new Dictionary<int, List<Point>>();
+
+            if (direction == Constants.Direction.VERTICAL)
+            {
+                unsafe
+                {
+
+                    //    DateTime a = DateTime.Now;
+
+                    //for (int i = 0; i < OldSize.Height; ++i)
+                    Parallel.For(0, ImageSize.Height, i =>
+                    {
+                        // int skipCount = 0;
+
+                        byte* dest = (byte*)newBmd.Scan0 + i * newBmd.Stride;
+                        byte* src = (byte*)oldBmd.Scan0 + i * oldBmd.Stride;
+
+                        for (int j = 0; j < ImageSize.Width; ++j)
+                        {
+                            if (indexMap[j, i] <= k)
+                            {
+                             //       EnergyFunction.EnergyMap[j, i] = -1;
+                                    //     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
+
+                                    //if (!removedPixels.ContainsKey(indexMap[j, i]))
+                                    //{
+                                    //    removedPixels.Add(indexMap[j, i], new List<Point>());
+                                    //}
+
+                                    //removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
+                                //  else
+                                //   {
+                                //skipCount++;
+                                //   }
+
+                               // if (j > 0)
+                              //  {
+
+                                    dest[0] = src[0];
+                                    dest[1] = src[1];
+                                    dest[2] = src[2];
+
+                                    //src += 3;
+                                    dest += 3;
+
+                                //    if (j < OldSize.Width - 1)
+                                //    {
+                                //        dest[0] = (byte) ((src[-3] + src[0] + src[3])/3);
+                                //        dest[1] = (byte)((src[-2] + src[1] + src[4]) / 3);
+                                //        dest[2] = (byte)((src[-1] + src[2] + src[5]) / 3);
+                                //    }else
+                                //    {
+                                //        dest[0] = (byte)((src[-3] + src[0]) / 2);
+                                //        dest[1] = (byte)((src[-2] + src[1]) / 2);
+                                //        dest[2] = (byte)((src[-1] + src[2]) / 2);
+                                //    }
+                                //}else
+                                //{
+                                    if (j < OldSize.Width - 1)
+                                    {
+                                        dest[0] = (byte)((2 * src[0] + src[3]) / 3);
+                                        dest[1] = (byte)((2 * src[1] + src[4]) / 3);
+                                        dest[2] = (byte)((2 * src[2] + src[5]) / 3);
+                                    }
+                                    else
+                                    {
+                                        dest[0] = src[0];
+                                        dest[1] = src[1];
+                                        dest[2] = src[2];
+                                    }
+                              //  }
+
+                                src += 3;
+                                dest += 3;
+                                continue;
+                            }
+
+                            dest[0] = src[0];
+                            dest[1] = src[1];
+                            dest[2] = src[2];
+
+                            src += 3;
+                            dest += 3;
+                        }
+                    });
+
+                    //TimeSpan b = DateTime.Now - a;
+
+                    //Console.WriteLine(b.Milliseconds);
+                }
+            }
+            else
+            {
+                unsafe
+                {
+                    for (int i = 0; i < OldSize.Width; ++i)
+                    {
+                        byte* dest = (byte*)newBmd.Scan0 + i * 3;
+                        byte* src = (byte*)oldBmd.Scan0 + i * 3;
+
+                        //        int skipCount = 0;
+
+                        for (int j = 0; j < OldSize.Height; ++j)
+                        {
+                            if (indexMap[i, j] <= k + RemovedSeams)
+                            {
+                                if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
+                                {
+                                    EnergyFunction.EnergyMap[i, j] = -1;
+                                    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
+
+                                    //if (!removedPixels.ContainsKey(indexMap[i, j]))
+                                    //{
+                                    //    removedPixels.Add(indexMap[i, j], new List<Point>());
+                                    //}
+
+                                    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
+                                }//else
+                                //    {
+                                //      skipCount++;
+                                //}
+                                //
+                                src += oldBmd.Stride;
+                                continue;
+                            }
+
+                            dest[0] = src[0];
+                            dest[1] = src[1];
+                            dest[2] = src[2];
+                            src += oldBmd.Stride;
+                            dest += newBmd.Stride;
+                        }
+                    }
+                }
+            }
+
+            //foreach (List<Point> pointList in removedPixels.Values)
+            //{
+            //    OnColorSeam(pointList);
+            //}
+
+            newBitmap.UnlockBits(newBmd);
+
+            //if (OldBitmap == null)
+            //{
+                _bitmap.UnlockBits(oldBmd);
+
+            //    OldBitmap = _bitmap;
+            //}
+            //else
+            //{
+            //    OldBitmap.UnlockBits(oldBmd);
+            //}
+
+
+            _bitmap = newBitmap;
+            BitData = newBmd;
+
+            CurrentWidth = newWidth;
+            CurrentHeight = newHeight;
+        }
+
         private void InvalidateAndRefresh(Constants.Direction direction)
         {
 
             DateTime a = DateTime.Now;
 
-            EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, direction);
+            //EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, direction);
+            EnergyFunction.ComputeEnergy(BitData, ImageSize);
 
             TimeSpan b = DateTime.Now - a;
 
@@ -645,12 +854,12 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(30, ImageSize.Height));
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(300, ImageSize.Height));
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(30, ImageSize.Width));
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(300, ImageSize.Width));
                                               });
 
             if (direction != Constants.Direction.VERTICAL)
