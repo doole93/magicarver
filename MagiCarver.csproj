@@ -75,6 +75,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CompareSeam.cs" />
+    <Compile Include="CompareSeam2.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="EnergyFunctions\EnergyFunction.cs" />
     <Compile Include="EnergyFunctions\Sobel.cs" />
@@ -99,6 +101,7 @@
     <Compile Include="SeamFunctions\CumulativeEnergyComparePairs.cs" />
     <Compile Include="SeamImage.cs" />
     <Compile Include="SeamPointArgs.cs" />
+    <Compile Include="SeamStep.cs" />
     <Compile Include="Utilities.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -10,7 +10,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using MagiCarver.EnergyFunctions;
-using Image=System.Drawing.Image;
 using Size=System.Drawing.Size;
 
 namespace MagiCarver
@@ -31,9 +30,6 @@ namespace MagiCarver
         private Constants.Direction Direction { get; set; }
         private DrawingAttributes   Highlighter { get; set; }
         private bool                FinishedUserInput { get; set; }
-
-        private object Lock = new object();
-        private bool busy;
 
         #endregion
 
@@ -198,7 +194,7 @@ namespace MagiCarver
             WorkInProgress(true);
 
             Thread t1 = new Thread(delegate() {
-                SeamImage.Carve(Direction, PaintSeam, 100);
+                SeamImage.Carve(Direction, PaintSeam, 16);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
             });
 
@@ -354,7 +350,7 @@ namespace MagiCarver
 
                 Thread t1 = new Thread(delegate()
                 {
-                    SeamImage.SetEnergy(strokes);
+                   SeamImage.SetEnergy(strokes);
                    SeamImage.RecomputeEntireMap();
                    SeamImage.CalculateIndexMaps(Constants.Direction.OPTIMAL);
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
