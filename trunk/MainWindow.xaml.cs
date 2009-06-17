@@ -49,6 +49,9 @@ namespace MagiCarver
 
         private void OpenFile_Clicked(object sender, RoutedEventArgs e)
         {
+            SizeChanged -= Window_SizeChanged;
+            SizeChanged -= Window_DummySizeChanged;
+
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.ShowDialog();
 
@@ -93,6 +96,8 @@ namespace MagiCarver
                            {
                                Title = Constants.TEXT_READY;
                            }
+
+                           SizeChanged += Window_SizeChanged;
                        });
                });
             
@@ -201,17 +206,11 @@ namespace MagiCarver
             t1.Start();
         }
 
-        private void UpdateStatus(string msg)
-        {
-            if (!String.IsNullOrEmpty(msg))
-            {
-                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => txtStatus.Text = msg));
-            }
-        }
-
         private void Window_DummySizeChanged(object sender, SizeChangedEventArgs e)
         {
             SizeChanged -= Window_DummySizeChanged;
+            Height = e.PreviousSize.Height;
+            Width = e.PreviousSize.Width;
             SizeChanged += Window_SizeChanged;
         }
 
@@ -293,7 +292,7 @@ namespace MagiCarver
 
                 t1.Join();
             }
-            if (e.HeightChanged && FinishedUserInput && e.PreviousSize.Height > e.NewSize.Height && SeamImage.ImageSize.Height > e.PreviousSize.Height - e.NewSize.Height)
+            else if (e.HeightChanged && FinishedUserInput && e.PreviousSize.Height > e.NewSize.Height && SeamImage.ImageSize.Height > e.PreviousSize.Height - e.NewSize.Height)
             {
                 WorkInProgress(true);
 
@@ -307,20 +306,39 @@ namespace MagiCarver
 
                 t1.Join();
             }
-            //if (e.WidthChanged && FinishedUserInput && e.PreviousSize.Width < e.NewSize.Width)
-            //{
-            //    WorkInProgress(true);
+            else if (e.WidthChanged && FinishedUserInput && e.PreviousSize.Width < e.NewSize.Width)
+            {
+                WorkInProgress(true);
 
-            //    Thread t1 = new Thread(delegate()
-            //    {
-            //        SeamImage.Add(Constants.Direction.VERTICAL, PaintSeam, (int)(e.NewSize.Width - e.PreviousSize.Width));
-            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-            //    });
+                Thread t1 = new Thread(delegate()
+                {
+                    SeamImage.Add(Constants.Direction.VERTICAL, PaintSeam, (int)(e.NewSize.Width - e.PreviousSize.Width));
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+                });
 
-            //    t1.Start();
+                t1.Start();
 
-            //    t1.Join();
-            //}
+                t1.Join();
+            }
+            else if (e.HeightChanged && FinishedUserInput && e.PreviousSize.Height < e.NewSize.Height)
+            {
+                WorkInProgress(true);
+
+                Thread t1 = new Thread(delegate()
+                {
+                    SeamImage.Add(Constants.Direction.HORIZONTAL, PaintSeam, (int)(e.NewSize.Height - e.PreviousSize.Height));
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+                });
+
+                t1.Start();
+
+                t1.Join();
+            }
+            else
+            {
+                SizeChanged -= Window_SizeChanged;
+                Window_DummySizeChanged(sender, e);
+            }
         }
 
         private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)
@@ -370,7 +388,6 @@ namespace MagiCarver
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
                     {
                         WorkInProgress(false);
-                        ResizeMode = ResizeMode.CanResizeWithGrip;
                     }));
                                                
                });
@@ -385,12 +402,8 @@ namespace MagiCarver
 
         private void SetImageSource(Bitmap bitmap, string bitmapName)
         {
-            theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),
-                                                                                           IntPtr.Zero, Int32Rect.Empty,
-                                                                                           BitmapSizeOptions.
-                                                                                               FromWidthAndHeight(
-                                                                                               bitmap.Width,
-                                                                                               bitmap.Height));
+            theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),IntPtr.Zero,
+                Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(bitmap.Width, bitmap.Height));
 
             Size size = SeamImage.ImageSize;
 

@@ -45,8 +45,6 @@ namespace MagiCarver
             return (x >= 0) && (x < size.Width) && (y >= 0) && (y < size.Height);
         }
 
-        #endregion
-
         //// toIndex is exclusive.
         //public static void ShiftArray<T>(T[,] array, Constants.Direction direction, int OppositeDirectionOffset, int fromIndex, int toIndex, object defaultValue)
         //{
@@ -108,5 +106,7 @@ namespace MagiCarver
 
         //  //  array[x, y] = (T)defaultValue;
         //}
+
+        #endregion
     }
 }

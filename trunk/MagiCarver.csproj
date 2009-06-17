@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
+    <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{20B9D49E-D57C-45EE-8123-16B6C2715F56}</ProjectGuid>
     <OutputType>WinExe</OutputType>
@@ -75,8 +75,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CompareSeam.cs" />
-    <Compile Include="CompareSeam2.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="EnergyFunctions\EnergyFunction.cs" />
     <Compile Include="EnergyFunctions\Sobel.cs" />
@@ -101,7 +99,6 @@
     <Compile Include="SeamFunctions\CumulativeEnergyComparePairs.cs" />
     <Compile Include="SeamImage.cs" />
     <Compile Include="SeamPointArgs.cs" />
-    <Compile Include="SeamStep.cs" />
     <Compile Include="Utilities.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

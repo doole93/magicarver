@@ -14,14 +14,14 @@ namespace MagiCarver
 
         #region CTors
 
-        public SeamPointArgs(IEnumerable<System.Drawing.Point> points)
+        public SeamPointArgs(Point[] points)
         {
-            Points = new List<Point>();
+            Points = new List<Point>(points);
 
-            foreach (System.Drawing.Point point1 in points)
-            {
-                Points.Add(new Point(point1.X, point1.Y));
-            }
+            //foreach (System.Drawing.Point point1 in points)
+            //{
+            //    Points.Add(new Point(point1.X, point1.Y));
+            //}
         }
 
         #endregion
