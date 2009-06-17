@@ -67,17 +67,6 @@ namespace MagiCarver.EnergyFunctions
         {
             EnergyMap = new int[bitmapData.Width, bitmapData.Height];
 
-        //    DateTime a = DateTime.Now;
-
-            //for (int x = 0; x < size.Width; ++x)
-            //{
-            //    int index0 = x;
-            //    Parallel.For(0, size.Height, y =>
-            //      {
-            //          EnergyMap[index0, y] = GetSobelEnergy(bitmapData, index0, y, size);
-            //      });
-            //}
-
             Parallel.For(0, size.Width, x =>
             {
                 for (int y = 0; y < size.Height; ++y)
@@ -85,89 +74,85 @@ namespace MagiCarver.EnergyFunctions
                     EnergyMap[x, y] = GetSobelEnergy(bitmapData, x, y, size);
                 }
             });
-
-            //TimeSpan b = DateTime.Now - a;
-
-            //Console.Write(b.Milliseconds);
         }
 
         public override void ComputeLocalEnergy(BitmapData bitmapData, Size oldSize, Size newSize, Constants.Direction direction)
         {
-            if (bitmapData != null)
-            {
-                int[,] newEnergyMap = new int[newSize.Width, newSize.Height];
+            //if (bitmapData != null)
+            //{
+            //    int[,] newEnergyMap = new int[newSize.Width, newSize.Height];
 
-                if (direction == Constants.Direction.VERTICAL)
-                {
-                    Parallel.For(0, newSize.Height, delegate(int i)
-                     {
-                         int skipCount = 0;
-                         //
-                         for (int j = 0; j < newSize.Width; ++j)
-                         {
-                             if (EnergyMap[j + skipCount, i] == -1)
-                             {
-                                 newEnergyMap[j, i] =
-                                    GetSobelEnergy(bitmapData, j, i,
-                                                   new Size(bitmapData.Width,
-                                                            bitmapData.Height));
-                                 if (j > 0)
-                                 {
-                                     newEnergyMap[j - 1, i] =
-                                         GetSobelEnergy(bitmapData, j - 1, i,
-                                                        new Size(bitmapData.Width,
-                                                                 bitmapData.Height));
-                                 }
+            //    if (direction == Constants.Direction.VERTICAL)
+            //    {
+            //        Parallel.For(0, newSize.Height, delegate(int i)
+            //         {
+            //             int skipCount = 0;
+            //             //
+            //             for (int j = 0; j < newSize.Width; ++j)
+            //             {
+            //                 if (EnergyMap[j + skipCount, i] == -1)
+            //                 {
+            //                     newEnergyMap[j, i] =
+            //                        GetSobelEnergy(bitmapData, j, i,
+            //                                       new Size(bitmapData.Width,
+            //                                                bitmapData.Height));
+            //                     if (j > 0)
+            //                     {
+            //                         newEnergyMap[j - 1, i] =
+            //                             GetSobelEnergy(bitmapData, j - 1, i,
+            //                                            new Size(bitmapData.Width,
+            //                                                     bitmapData.Height));
+            //                     }
 
-                                 while (EnergyMap[j + skipCount, i] == -1)
-                                 {
-                                     skipCount++; 
-                                 }
+            //                     while (EnergyMap[j + skipCount, i] == -1)
+            //                     {
+            //                         skipCount++; 
+            //                     }
                                  
-                             }else
-                             {
-                                 newEnergyMap[j, i] = EnergyMap[j + skipCount, i];
-                             }
-                         }
-                     });
-                }
-                else
-                {
-                    Parallel.For(0, newSize.Width, delegate(int i)
-                    {
-                        int skipCount = 0;
+            //                 }else
+            //                 {
+            //                     newEnergyMap[j, i] = EnergyMap[j + skipCount, i];
+            //                 }
+            //             }
+            //         });
+            //    }
+            //    else
+            //    {
+            //        Parallel.For(0, newSize.Width, delegate(int i)
+            //        {
+            //            int skipCount = 0;
 
-                        for (int j = 0; j < newSize.Height; ++j)
-                        {
-                            if (EnergyMap[i, j + skipCount] == -1)
-                            {
-                                newEnergyMap[i, j] =
-                                   GetSobelEnergy(bitmapData, i, j,
-                                                  new Size(bitmapData.Width,
-                                                           bitmapData.Height));
-                                if (j > 0)
-                                {
-                                    newEnergyMap[i, j - 1] =
-                                        GetSobelEnergy(bitmapData, i, j - 1,
-                                                       new Size(bitmapData.Width,
-                                                                bitmapData.Height));
-                                }
+            //            for (int j = 0; j < newSize.Height; ++j)
+            //            {
+            //                if (EnergyMap[i, j + skipCount] == -1)
+            //                {
+            //                    newEnergyMap[i, j] =
+            //                       GetSobelEnergy(bitmapData, i, j,
+            //                                      new Size(bitmapData.Width,
+            //                                               bitmapData.Height));
+            //                    if (j > 0)
+            //                    {
+            //                        newEnergyMap[i, j - 1] =
+            //                            GetSobelEnergy(bitmapData, i, j - 1,
+            //                                           new Size(bitmapData.Width,
+            //                                                    bitmapData.Height));
+            //                    }
 
-                                while (EnergyMap[i, j + skipCount] == -1)
-                                {
-                                    skipCount++;
-                                }
+            //                    while (EnergyMap[i, j + skipCount] == -1)
+            //                    {
+            //                        skipCount++;
+            //                    }
 
-                            }
-                            else
-                            {
-                                newEnergyMap[i, j] = EnergyMap[i, j + skipCount];
-                            }
-                        }
-                    });
-                }
-                EnergyMap = newEnergyMap;
-            }
+            //                }
+            //                else
+            //                {
+            //                    newEnergyMap[i, j] = EnergyMap[i, j + skipCount];
+            //                }
+            //            }
+            //        });
+            //    }
+            //    EnergyMap = newEnergyMap;
+            //}
         }
 
         #endregion

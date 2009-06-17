@@ -144,7 +144,155 @@ namespace MagiCarver.SeamFunctions
                 HorizontalCumulativeEnergyMapUsed[x, y] = true;
             }
         }
-     
+
+        public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k, int[,] indexMap)
+        {
+            List<KeyValuePair<Point, double>> lowestSeamsEnergy = (direction == Constants.Direction.VERTICAL ? LowestVerticalSeamsEnergy : LowestHorizontalSeamsEnergy);
+
+            Seam seam = BuildSeam(direction, lowestSeamsEnergy[k].Key.X, lowestSeamsEnergy[k].Key.Y, size, indexMap, k);
+
+            seam.SeamValue = lowestSeamsEnergy[k].Value;
+
+            return seam;
+        }
+
+        private Seam BuildSeam(Constants.Direction direction, int x, int y, Size size, int[,] indexMap, int k)
+        {
+            SetUsedPixel(direction, x, y);
+
+            indexMap[x, y] = k;
+
+            int pixelCount = direction == Constants.Direction.VERTICAL ? size.Height : size.Width;
+
+            Seam seam = new Seam
+            {
+                PixelLocations = new System.Windows.Point[pixelCount]
+            };
+
+            int pixelIndex = pixelCount - 1;
+
+            while (pixelIndex > 0)
+            {
+                KeyValuePair<Point, int> leftNeighbour;
+                KeyValuePair<Point, int> straightNeighbour;
+                KeyValuePair<Point, int> rightNeighbour;
+                KeyValuePair<Point, int> chosenNeighbour;
+
+                leftNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.LEFT);
+                straightNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.STRAIGHT);
+                rightNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.RIGHT);
+
+                if (leftNeighbour.Value < straightNeighbour.Value)
+                {
+                    chosenNeighbour = leftNeighbour.Value < rightNeighbour.Value ? leftNeighbour : rightNeighbour;
+                }
+                else
+                {
+                    chosenNeighbour = straightNeighbour.Value < rightNeighbour.Value ? straightNeighbour : rightNeighbour;
+                }
+
+                seam.PixelLocations[pixelIndex] = new System.Windows.Point(chosenNeighbour.Key.X,chosenNeighbour.Key.Y);
+
+                SetUsedPixel(direction, chosenNeighbour.Key.X, chosenNeighbour.Key.Y);
+
+                x = chosenNeighbour.Key.X;
+                y = chosenNeighbour.Key.Y;
+                
+                indexMap[x, y] = k;
+
+                pixelIndex--;
+            }
+
+            seam.Direction = direction;
+
+            seam.StartIndex = direction == Constants.Direction.VERTICAL ? x : y;
+
+            seam.PixelLocations[0] = seam.PixelLocations[pixelIndex] = new System.Windows.Point(x, y); 
+
+            return seam;
+        }
+
+        private KeyValuePair<Point, int> GetNeighbour(Constants.Direction direction, int x, int y, Size size, Constants.NeighbourType type)
+        {
+            int currentX = x, currentY = y, currentEnergy = int.MaxValue;
+            int distance, directionSetter;
+
+            if (direction == Constants.Direction.VERTICAL)
+            {
+                switch (type)
+                {
+                    case Constants.NeighbourType.LEFT:
+                        currentY--;
+                        distance = currentX;
+                        directionSetter = -1;
+                        break;
+                    case Constants.NeighbourType.RIGHT:
+                        currentY--;
+                        distance = size.Width - currentX - 1;
+                        directionSetter = 1;
+                        break;
+                    case Constants.NeighbourType.STRAIGHT:
+                        return new KeyValuePair<Point, int>(
+                            new Point(currentX, currentY - 1), 
+                            VerticalCumulativeEnergyMapUsed[currentX, currentY - 1] ? 
+                            currentEnergy : VerticalCumulativeEnergyMap[currentX, currentY - 1]);
+                    default:
+                        throw new ArgumentOutOfRangeException("type");
+                }
+
+                for (int i = 0; i < distance; ++i){
+
+                    currentX += directionSetter;
+
+                    if (VerticalCumulativeEnergyMapUsed[currentX, currentY])
+                    {
+                        continue;
+                    }
+
+                    currentEnergy = VerticalCumulativeEnergyMap[currentX, currentY];
+                    break;
+                }
+            }
+            else
+            {
+                switch (type)
+                {
+                    case Constants.NeighbourType.LEFT:
+                        currentX--;
+                        distance = size.Height - currentY - 1;
+                        directionSetter = 1;
+                        break;
+                    case Constants.NeighbourType.RIGHT:
+                        currentX--;
+                        distance = currentY;
+                        directionSetter = -1;
+                        break;
+                    case Constants.NeighbourType.STRAIGHT:
+                        return new KeyValuePair<Point, int>(new Point(currentX - 1, currentY),
+                            HorizontalCumulativeEnergyMapUsed[currentX - 1, currentY] ?
+                            currentEnergy : HorizontalCumulativeEnergyMap[currentX - 1, currentY]);
+                    default:
+                        throw new ArgumentOutOfRangeException("type");
+                }
+
+                for (int i = 0; i < distance; ++i)
+                {
+
+                    currentY += directionSetter;
+
+                    if (HorizontalCumulativeEnergyMapUsed[currentX, currentY])
+                    {
+                        continue;
+                    }
+
+                    currentEnergy = HorizontalCumulativeEnergyMap[currentX, currentY];
+                    break;
+                }
+            }
+
+            return new KeyValuePair<Point, int>(new Point(currentX, currentY), currentEnergy);
+        }
+
         //public void RecomputeEnergyMapRange(Size size, Size oldSize, Constants.Direction direction)
         //{
         //    int maxIndex = int.MinValue, minIndex = int.MaxValue, count = 0;
@@ -257,156 +405,6 @@ namespace MagiCarver.SeamFunctions
 
         //    ComputeSubEnergyMap(direction, minIndex, maxIndex - count, size);
         //}
-
-        public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k, int[,] indexMap)
-        {
-            List<KeyValuePair<Point, double>> lowestSeamsEnergy = (direction == Constants.Direction.VERTICAL ? LowestVerticalSeamsEnergy : LowestHorizontalSeamsEnergy);
-
-            Seam seam = BuildSeam(direction, lowestSeamsEnergy[k].Key.X, lowestSeamsEnergy[k].Key.Y, size, indexMap, k);
-
-            seam.SeamValue = lowestSeamsEnergy[k].Value;
-
-            return seam;
-        }
-
-        private Seam BuildSeam(Constants.Direction direction, int x, int y, Size size, int[,] indexMap, int k)
-        {
-            SetUsedPixel(direction, x, y);
-
-            indexMap[x, y] = k;
-
-            int pixelCount = direction == Constants.Direction.VERTICAL ? size.Height : size.Width;
-
-            Seam seam = new Seam
-            {
-                PixelLocations = new int[pixelCount]
-            };
-
-            int pixelIndex = pixelCount - 1;
-
-            while (pixelIndex > 0)
-            {
-                KeyValuePair<Point, int> leftNeighbour;
-                KeyValuePair<Point, int> straightNeighbour;
-                KeyValuePair<Point, int> rightNeighbour;
-                KeyValuePair<Point, int> chosenNeighbour;
-
-                leftNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.LEFT);
-                straightNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.STRAIGHT);
-                rightNeighbour = GetNeighbour(direction, x, y, size, Constants.NeighbourType.RIGHT);
-
-                if (leftNeighbour.Value < straightNeighbour.Value)
-                {
-                    chosenNeighbour = leftNeighbour.Value < rightNeighbour.Value ? leftNeighbour : rightNeighbour;
-                }
-                else
-                {
-                    chosenNeighbour = straightNeighbour.Value < rightNeighbour.Value ? straightNeighbour : rightNeighbour;
-                }
-
-                seam.PixelLocations[pixelIndex] = direction == Constants.Direction.VERTICAL
-                                                      ? chosenNeighbour.Key.X
-                                                      : chosenNeighbour.Key.Y;
-
-                SetUsedPixel(direction, chosenNeighbour.Key.X, chosenNeighbour.Key.Y);
-
-                x = chosenNeighbour.Key.X;
-                y = chosenNeighbour.Key.Y;
-                //
-                indexMap[x, y] = k;
-
-                pixelIndex--;
-            }
-
-            seam.Direction = direction;
-
-            seam.StartIndex = direction == Constants.Direction.VERTICAL ? x : y;
-
-            seam.PixelLocations[0] = seam.StartIndex;
-
-            return seam;
-        }
-
-        private KeyValuePair<Point, int> GetNeighbour(Constants.Direction direction, int x, int y, Size size, Constants.NeighbourType type)
-        {
-            int currentX = x, currentY = y, currentEnergy = int.MaxValue;
-            int distance, directionSetter;
-
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                switch (type)
-                {
-                    case Constants.NeighbourType.LEFT:
-                        currentY--;
-                        distance = currentX;
-                        directionSetter = -1;
-                        break;
-                    case Constants.NeighbourType.RIGHT:
-                        currentY--;
-                        distance = size.Width - currentX - 1;
-                        directionSetter = 1;
-                        break;
-                    case Constants.NeighbourType.STRAIGHT:
-                        return new KeyValuePair<Point, int>(
-                            new Point(currentX, currentY - 1), 
-                            VerticalCumulativeEnergyMapUsed[currentX, currentY - 1] ? 
-                            currentEnergy : VerticalCumulativeEnergyMap[currentX, currentY - 1]);
-                    default:
-                        throw new ArgumentOutOfRangeException("type");
-                }
-
-                for (int i = 0; i < distance; ++i){
-
-                    currentX += directionSetter;
-
-                    if (VerticalCumulativeEnergyMapUsed[currentX, currentY])
-                    {
-                        continue;
-                    }
-
-                    currentEnergy = VerticalCumulativeEnergyMap[currentX, currentY];
-                    break;
-                }
-            }
-            else
-            {
-                switch (type)
-                {
-                    case Constants.NeighbourType.LEFT:
-                        currentX--;
-                        distance = size.Height - currentY - 1;
-                        directionSetter = 1;
-                        break;
-                    case Constants.NeighbourType.RIGHT:
-                        currentX--;
-                        distance = currentY;
-                        directionSetter = -1;
-                        break;
-                    case Constants.NeighbourType.STRAIGHT:
-                        return new KeyValuePair<Point, int>(new Point(currentX - 1, currentY),
-                            HorizontalCumulativeEnergyMapUsed[currentX - 1, currentY] ?
-                            currentEnergy : HorizontalCumulativeEnergyMap[currentX - 1, currentY]);
-                    default:
-                        throw new ArgumentOutOfRangeException("type");
-                }
-
-                for (int i = 0; i < distance; ++i)
-                {
-
-                    currentY += directionSetter;
-
-                    if (HorizontalCumulativeEnergyMapUsed[currentX, currentY])
-                    {
-                        continue;
-                    }
-
-                    currentEnergy = HorizontalCumulativeEnergyMap[currentX, currentY];
-                    break;
-                }
-            }
-
-            return new KeyValuePair<Point, int>(new Point(currentX, currentY), currentEnergy);
-        }
 
         #endregion
     }

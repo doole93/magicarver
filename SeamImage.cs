@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.Drawing;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Ink;
 using System.Windows.Input;
@@ -46,6 +44,7 @@ namespace MagiCarver
         private Size OldSize { get; set; }
 
         private int RemovedSeams { get; set; }
+        private int AddedSeams { get; set; }
 
         private List<KeyValuePair<Point, Constants.EnergyType>> UserEnergy { get; set; }
 
@@ -127,7 +126,7 @@ namespace MagiCarver
             }
         }
 
-        protected virtual void OnColorSeam(IEnumerable<Point> points)
+        protected virtual void OnColorSeam(System.Windows.Point[] points)
         {
             if (ColorSeam != null)
             {
@@ -193,10 +192,6 @@ namespace MagiCarver
                 else
                 {
                     throw new InvalidOperationException();
-                    //Seam isLowest1 = SeamFunction.GetKthLowestEnergySeam(Constants.Direction.VERTICAL, ImageSize, i, indexMap);
-                    //Seam isLowest2 = SeamFunction.GetKthLowestEnergySeam(Constants.Direction.HORIZONTAL, ImageSize, i, indexMap);
-
-                    //currentLowestEnergySeam = isLowest1.SeamValue < isLowest2.SeamValue ? isLowest1 : isLowest2;
                 }
 
                 seams.Add(currentLowestEnergySeam);
@@ -207,6 +202,12 @@ namespace MagiCarver
 
         public void Carve(Constants.Direction direction, bool paintSeam, int k)
         {
+
+            if (AddedSeams > 0)
+            {
+                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+            }
+
             if (direction == Constants.Direction.VERTICAL)
             {
                 if (k >= ImageSize.Width)
@@ -230,153 +231,68 @@ namespace MagiCarver
                 }
             }
 
-           // DateTime a = DateTime.Now;
+            //for (int i = 0; i < k; ++i)
+            //{
+            //    OnColorSeam(VerticalSeams[i].PixelLocations);
+            //}
 
             CarveSeams(direction, k - 1);
-         //   CarveSeamsNew(direction, VerticalSeams, k);
-           // InvalidateAndRefresh(direction);
-
-       //     TimeSpan b = DateTime.Now - a;
-
-  //          Console.WriteLine(b.Milliseconds);
 
             RemovedSeams += k;
 
             if (direction == Constants.Direction.VERTICAL)
             {
                 VerticalSeams.RemoveRange(0, k);
-            }else
+            }
+            else
             {
                 HorizontalSeams.RemoveRange(0, k);
             }
 
             OnImageChanged();
 
-            OnOperationComplete();
+           // OnOperationComplete();
         }
 
         public void Add(Constants.Direction direction, bool paintSeam, int k)
         {
+            if (RemovedSeams > 0)
+            {
+                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+            }
+
+            if (direction == Constants.Direction.VERTICAL)
+            {
+                if (VerticalSeams.Count < k)
+                {
+                    InvalidateAndRefresh(direction);
+                }
+            }
+            else
+            {
+                if (HorizontalSeams.Count < k)
+                {
+                    InvalidateAndRefresh(direction);
+                }
+            }
             
-
-            // DateTime a = DateTime.Now;
-
             AddSeams(direction, k - 1);
-            //   CarveSeamsNew(direction, VerticalSeams, k);
-            // InvalidateAndRefresh(direction);
 
-            //     TimeSpan b = DateTime.Now - a;
+            AddedSeams += k;
 
-            //          Console.WriteLine(b.Milliseconds);
-
-            InvalidateAndRefresh(direction);
+            if (direction == Constants.Direction.VERTICAL)
+            {
+                VerticalSeams.RemoveRange(0, k);
+            }
+            else
+            {
+                HorizontalSeams.RemoveRange(0, k);
+            }
 
             OnImageChanged();
 
-            OnOperationComplete();
+          //  OnOperationComplete();
         }
-
-        private void CarveSeamsNew(Constants.Direction direction, List<Seam> seams, int k)
-        {
-            int newWidth = direction == Constants.Direction.VERTICAL ? CurrentWidth - k : CurrentWidth;
-            int newHeight = direction == Constants.Direction.HORIZONTAL ? CurrentHeight - k : CurrentHeight;
-
-            BitmapData oldBmd;
-
-            //if (OldBitmap == null)
-            //{
-                oldBmd = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
-                                                   ImageLockMode.ReadOnly, _bitmap.PixelFormat);
-            //}
-            //else
-            //{
-            //    oldBmd = OldBitmap.LockBits(new Rectangle(0, 0, OldBitmap.Width, OldBitmap.Height),
-            //                                       ImageLockMode.ReadOnly, OldBitmap.PixelFormat);
-            //}
-
-            Bitmap newBitmap = new Bitmap(newWidth, newHeight, _bitmap.PixelFormat);
-
-            BitmapData newBmd = newBitmap.LockBits(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height),
-                                                   ImageLockMode.WriteOnly, newBitmap.PixelFormat);
-
-            byte[] oldBitmapBytes = new byte[oldBmd.Stride * oldBmd.Height];
-            byte[] newBitmapBytes = new byte[newBmd.Stride * newBmd.Height];
-
-//            DateTime a = DateTime.Now;
-
-            //Buffer.BlockCopy(oldBmd.Scan0, 0, tst, 0, 0);
-            Marshal.Copy(oldBmd.Scan0, oldBitmapBytes, 0, oldBmd.Stride * oldBmd.Height);
-
-      //      TimeSpan b = DateTime.Now - a;
-
- //           Console.WriteLine(b.Milliseconds);
-
-            List<int> pixelsLocations = new List<int>();
-
-            unsafe
-            {
-
-                byte* a = (byte*) newBmd.Scan0;
-
-                for (int j = 0; j < ImageSize.Height; ++j)
-                {
-                    for (int i = 0; i < k; ++i)
-                    {
-                        pixelsLocations.Add(seams[i].PixelLocations[j]);
-                    }
-
-                    pixelsLocations.Sort(new IntSort());
-
-                    int offset = j * oldBmd.Stride;
-                    int cumLength = j * newBmd.Stride;
-
-                    for (int m = 0; m < pixelsLocations.Count; ++m)
-                    {
-                        int length = m > 0
-                                         ? (pixelsLocations[m] - pixelsLocations[m - 1] - 1) * 3
-                                         : pixelsLocations[m] *3 ;
-                        //Marshal.Copy(oldBitmap, newBmd.Scan0, offset, length);
-                        //Marshal.Copy(oldBitmapBytes, offset, newBitmapBytes, length);
-                        Buffer.BlockCopy(oldBitmapBytes, offset, newBitmapBytes, cumLength, length);
-
-
-                        cumLength += length;
-
-                        offset += length + 3;
-                    }
-
-                    Buffer.BlockCopy(oldBitmapBytes, offset, newBitmapBytes, cumLength, (oldBmd.Width - pixelsLocations[pixelsLocations.Count - 1] - 1) * 3);
-
-                   
-                    pixelsLocations.Clear();
-                }
-
-            }
-
-            Marshal.Copy(newBitmapBytes, 0, newBmd.Scan0, newBmd.Stride * newBmd.Height);
-
-            newBitmap.UnlockBits(newBmd);
-
-            //if (OldBitmap == null)
-            //{
-                _bitmap.UnlockBits(oldBmd);
-
-            //    OldBitmap = _bitmap;
-            //}
-            //else
-            //{
-            //    OldBitmap.UnlockBits(oldBmd);
-            //}
-
-
-            _bitmap = newBitmap;
-            BitData = newBmd;
-
-            CurrentWidth = newWidth;
-            CurrentHeight = newHeight;
-        }
-
-
 
         private void CarveSeams(Constants.Direction direction, int k)
         {
@@ -409,9 +325,6 @@ namespace MagiCarver
             {
                 unsafe
                 {
-
-                    //    DateTime a = DateTime.Now;
-
                     //for (int i = 0; i < OldSize.Height; ++i)
                     Parallel.For(0, OldSize.Height, i =>
                     {
@@ -424,18 +337,18 @@ namespace MagiCarver
                         {
                             if (indexMap[j, i] <= k + RemovedSeams)
                             {
-                                if (indexMap[j, i] <= RemovedSeams + k && indexMap[j, i] >= RemovedSeams)
-                                {
-                                    EnergyFunction.EnergyMap[j, i] = -1;
-                                    //     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
+                                //if (indexMap[j, i] <= RemovedSeams + k && indexMap[j, i] >= RemovedSeams)
+                                //{
+                                //    EnergyFunction.EnergyMap[j, i] = -1;
+                                //    //     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
 
-                                    //if (!removedPixels.ContainsKey(indexMap[j, i]))
-                                    //{
-                                    //    removedPixels.Add(indexMap[j, i], new List<Point>());
-                                    //}
+                                //    //if (!removedPixels.ContainsKey(indexMap[j, i]))
+                                //    //{
+                                //    //    removedPixels.Add(indexMap[j, i], new List<Point>());
+                                //    //}
 
-                                    //removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
-                                }
+                                //    //removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
+                                //}
                                 //  else
                                 //   {
                                 //skipCount++;
@@ -453,10 +366,6 @@ namespace MagiCarver
                             dest += 3;
                         }
                     });
-
-                    //TimeSpan b = DateTime.Now - a;
-
-                    //Console.WriteLine(b.Milliseconds);
                 }
             }
             else
@@ -474,18 +383,18 @@ namespace MagiCarver
                         {
                             if (indexMap[i, j] <= k + RemovedSeams)
                             {
-                                if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
-                                {
-                                    EnergyFunction.EnergyMap[i, j] = -1;
-                                    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
+                                //if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
+                                //{
+                                //    EnergyFunction.EnergyMap[i, j] = -1;
+                                //    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
 
-                                    //if (!removedPixels.ContainsKey(indexMap[i, j]))
-                                    //{
-                                    //    removedPixels.Add(indexMap[i, j], new List<Point>());
-                                    //}
+                                //    //if (!removedPixels.ContainsKey(indexMap[i, j]))
+                                //    //{
+                                //    //    removedPixels.Add(indexMap[i, j], new List<Point>());
+                                //    //}
 
-                                    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
-                                }//else
+                                //    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
+                                //}//else
                                 //    {
                                 //      skipCount++;
                                 //}
@@ -542,16 +451,16 @@ namespace MagiCarver
 
             BitmapData oldBmd;
 
-            //if (OldBitmap == null)
-            //{
+            if (OldBitmap == null)
+            {
                oldBmd = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                                                    ImageLockMode.ReadOnly, _bitmap.PixelFormat);
-            //}
-            //else
-            //{
-            //    oldBmd = OldBitmap.LockBits(new Rectangle(0, 0, OldBitmap.Width, OldBitmap.Height),
-            //                                       ImageLockMode.ReadOnly, OldBitmap.PixelFormat);
-            //}
+            }
+            else
+            {
+                oldBmd = OldBitmap.LockBits(new Rectangle(0, 0, OldBitmap.Width, OldBitmap.Height),
+                                                   ImageLockMode.ReadOnly, OldBitmap.PixelFormat);
+            }
 
             int[,] indexMap = (direction == Constants.Direction.VERTICAL ? VerticalIndexMap : HorizontalIndexMap);
 
@@ -561,20 +470,17 @@ namespace MagiCarver
             {
                 unsafe
                 {
-
-                    //    DateTime a = DateTime.Now;
-
                     //for (int i = 0; i < OldSize.Height; ++i)
-                    Parallel.For(0, ImageSize.Height, i =>
+                    Parallel.For(0, OldSize.Height, i =>
                     {
                         // int skipCount = 0;
 
                         byte* dest = (byte*)newBmd.Scan0 + i * newBmd.Stride;
                         byte* src = (byte*)oldBmd.Scan0 + i * oldBmd.Stride;
 
-                        for (int j = 0; j < ImageSize.Width; ++j)
+                        for (int j = 0; j < OldSize.Width; ++j)
                         {
-                            if (indexMap[j, i] <= k)
+                            if (indexMap[j, i] <= k + AddedSeams)
                             {
                              //       EnergyFunction.EnergyMap[j, i] = -1;
                                     //     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
@@ -615,9 +521,9 @@ namespace MagiCarver
                                 //{
                                     if (j < OldSize.Width - 1)
                                     {
-                                        dest[0] = (byte)((2 * src[0] + src[3]) / 3);
-                                        dest[1] = (byte)((2 * src[1] + src[4]) / 3);
-                                        dest[2] = (byte)((2 * src[2] + src[5]) / 3);
+                                        dest[0] = (byte)((src[0] + src[3]) / 2);
+                                        dest[1] = (byte)((src[1] + src[4]) / 2);
+                                        dest[2] = (byte)((src[2] + src[5]) / 2);
                                     }
                                     else
                                     {
@@ -640,10 +546,6 @@ namespace MagiCarver
                             dest += 3;
                         }
                     });
-
-                    //TimeSpan b = DateTime.Now - a;
-
-                    //Console.WriteLine(b.Milliseconds);
                 }
             }
             else
@@ -659,25 +561,39 @@ namespace MagiCarver
 
                         for (int j = 0; j < OldSize.Height; ++j)
                         {
-                            if (indexMap[i, j] <= k + RemovedSeams)
+                            if (indexMap[i, j] <= k + AddedSeams)
                             {
-                                if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
-                                {
-                                    EnergyFunction.EnergyMap[i, j] = -1;
-                                    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
+                                //if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
+                                //{
+                                //    //EnergyFunction.EnergyMap[i, j] = -1;
+                                //    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
 
-                                    //if (!removedPixels.ContainsKey(indexMap[i, j]))
-                                    //{
-                                    //    removedPixels.Add(indexMap[i, j], new List<Point>());
-                                    //}
+                                //    //if (!removedPixels.ContainsKey(indexMap[i, j]))
+                                //    //{
+                                //    //    removedPixels.Add(indexMap[i, j], new List<Point>());
+                                //    //}
 
-                                    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
-                                }//else
+                                //    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
+                                //}//else
                                 //    {
                                 //      skipCount++;
                                 //}
                                 //
+                                dest[0] = src[0];
+                                dest[1] = src[1];
+                                dest[2] = src[2];
+
+                                dest += newBmd.Stride;
+
                                 src += oldBmd.Stride;
+                                if (j < OldSize.Height - 1)
+                                {
+                                    dest[0] = (byte)((dest[-newBmd.Stride] + src[0]) / 2);
+                                    dest[1] = (byte)((dest[-newBmd.Stride + 1] + src[1]) / 2);
+                                    dest[2] = (byte)((dest[-newBmd.Stride + 2] + src[2]) / 2);
+                                }
+
+                                dest += newBmd.Stride;
                                 continue;
                             }
 
@@ -698,16 +614,16 @@ namespace MagiCarver
 
             newBitmap.UnlockBits(newBmd);
 
-            //if (OldBitmap == null)
-            //{
+            if (OldBitmap == null)
+            {
                 _bitmap.UnlockBits(oldBmd);
 
-            //    OldBitmap = _bitmap;
-            //}
-            //else
-            //{
-            //    OldBitmap.UnlockBits(oldBmd);
-            //}
+                OldBitmap = _bitmap;
+            }
+            else
+            {
+                OldBitmap.UnlockBits(oldBmd);
+            }
 
 
             _bitmap = newBitmap;
@@ -720,37 +636,34 @@ namespace MagiCarver
         private void InvalidateAndRefresh(Constants.Direction direction)
         {
 
-            DateTime a = DateTime.Now;
+            BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
+                                                   ImageLockMode.ReadOnly, _bitmap.PixelFormat);
 
             //EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, direction);
+
             EnergyFunction.ComputeEnergy(BitData, ImageSize);
 
-            TimeSpan b = DateTime.Now - a;
-
-            Console.WriteLine(String.Format("Refresh of pixel's energy took {0} milliseconds.", b.Milliseconds));
-
-            a = DateTime.Now;
+            _bitmap.UnlockBits(BitData);
 
             //    SeamFunction.RecomputeEnergyMapRange(ImageSize, OldSize, direction);
-            SeamFunction.ComputeEntireEnergyMap(direction, ImageSize);
 
-            b = DateTime.Now - a;
+            if (direction == Constants.Direction.OPTIMAL || direction == Constants.Direction.VERTICAL)
+            {
+                SeamFunction.ComputeEntireEnergyMap(Constants.Direction.VERTICAL, ImageSize);
+            }
 
-            Console.WriteLine(String.Format("Recomputation of energy map took {0} milliseconds.", b.Milliseconds));
-
-            a = DateTime.Now;
-
+            if (direction == Constants.Direction.OPTIMAL || direction == Constants.Direction.HORIZONTAL)
+            {
+                SeamFunction.ComputeEntireEnergyMap(Constants.Direction.HORIZONTAL, ImageSize);
+            }
+            
             CalculateIndexMaps(direction);
-
-            b = DateTime.Now - a;
-
-            Console.WriteLine(String.Format("Recalculation of index map took {0} milliseconds.", b.Milliseconds));
-
+          
             OldSize = ImageSize;
 
-            OldBitmap = _bitmap;
+            OldBitmap = null;
 
-            RemovedSeams = 0;
+            RemovedSeams = AddedSeams = 0;
         }
 
         private void GenerateEnergyMapBitmap()
@@ -829,7 +742,6 @@ namespace MagiCarver
                 }
             }else if (direction == Constants.Direction.VERTICAL)
             {
-                DateTime a = DateTime.Now;
                 Parallel.For(0, CurrentWidth, i =>
                 {
                     for (int j = 0; j < CurrentHeight; ++j)
@@ -837,10 +749,6 @@ namespace MagiCarver
                         VerticalIndexMap[i, j] = int.MaxValue;
                     }
                 });
-
-                TimeSpan b = DateTime.Now - a;
-                
-                Console.WriteLine(string.Format("For took {0} milliseconds.", b.Milliseconds));
             }else
             {
                 for (int i = 0; i < CurrentWidth; ++i)
@@ -884,6 +792,106 @@ namespace MagiCarver
 
             _bitmap.UnlockBits(BitData);
         }
+
+        //        private void CarveSeamsNew(Constants.Direction direction, List<Seam> seams, int k)
+        //        {
+        //            int newWidth = direction == Constants.Direction.VERTICAL ? CurrentWidth - k : CurrentWidth;
+        //            int newHeight = direction == Constants.Direction.HORIZONTAL ? CurrentHeight - k : CurrentHeight;
+
+        //            BitmapData oldBmd;
+
+        //            //if (OldBitmap == null)
+        //            //{
+        //                oldBmd = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
+        //                                                   ImageLockMode.ReadOnly, _bitmap.PixelFormat);
+        //            //}
+        //            //else
+        //            //{
+        //            //    oldBmd = OldBitmap.LockBits(new Rectangle(0, 0, OldBitmap.Width, OldBitmap.Height),
+        //            //                                       ImageLockMode.ReadOnly, OldBitmap.PixelFormat);
+        //            //}
+
+        //            Bitmap newBitmap = new Bitmap(newWidth, newHeight, _bitmap.PixelFormat);
+
+        //            BitmapData newBmd = newBitmap.LockBits(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height),
+        //                                                   ImageLockMode.WriteOnly, newBitmap.PixelFormat);
+
+        //            byte[] oldBitmapBytes = new byte[oldBmd.Stride * oldBmd.Height];
+        //            byte[] newBitmapBytes = new byte[newBmd.Stride * newBmd.Height];
+
+        ////            DateTime a = DateTime.Now;
+
+        //            //Buffer.BlockCopy(oldBmd.Scan0, 0, tst, 0, 0);
+        //            Marshal.Copy(oldBmd.Scan0, oldBitmapBytes, 0, oldBmd.Stride * oldBmd.Height);
+
+        //      //      TimeSpan b = DateTime.Now - a;
+
+        // //           Console.WriteLine(b.Milliseconds);
+
+        //            List<int> pixelsLocations = new List<int>();
+
+        //            unsafe
+        //            {
+
+        //                byte* a = (byte*) newBmd.Scan0;
+
+        //                for (int j = 0; j < ImageSize.Height; ++j)
+        //                {
+        //                    for (int i = 0; i < k; ++i)
+        //                    {
+        //                        pixelsLocations.Add(seams[i].PixelLocations[j]);
+        //                    }
+
+        //                    pixelsLocations.Sort(new IntSort());
+
+        //                    int offset = j * oldBmd.Stride;
+        //                    int cumLength = j * newBmd.Stride;
+
+        //                    for (int m = 0; m < pixelsLocations.Count; ++m)
+        //                    {
+        //                        int length = m > 0
+        //                                         ? (pixelsLocations[m] - pixelsLocations[m - 1] - 1) * 3
+        //                                         : pixelsLocations[m] *3 ;
+        //                        //Marshal.Copy(oldBitmap, newBmd.Scan0, offset, length);
+        //                        //Marshal.Copy(oldBitmapBytes, offset, newBitmapBytes, length);
+        //                        Buffer.BlockCopy(oldBitmapBytes, offset, newBitmapBytes, cumLength, length);
+
+
+        //                        cumLength += length;
+
+        //                        offset += length + 3;
+        //                    }
+
+        //                    Buffer.BlockCopy(oldBitmapBytes, offset, newBitmapBytes, cumLength, (oldBmd.Width - pixelsLocations[pixelsLocations.Count - 1] - 1) * 3);
+
+
+        //                    pixelsLocations.Clear();
+        //                }
+
+        //            }
+
+        //            Marshal.Copy(newBitmapBytes, 0, newBmd.Scan0, newBmd.Stride * newBmd.Height);
+
+        //            newBitmap.UnlockBits(newBmd);
+
+        //            //if (OldBitmap == null)
+        //            //{
+        //                _bitmap.UnlockBits(oldBmd);
+
+        //            //    OldBitmap = _bitmap;
+        //            //}
+        //            //else
+        //            //{
+        //            //    OldBitmap.UnlockBits(oldBmd);
+        //            //}
+
+
+        //            _bitmap = newBitmap;
+        //            BitData = newBmd;
+
+        //            CurrentWidth = newWidth;
+        //            CurrentHeight = newHeight;
+        //        }
 
         //private void CarveSeam(Seam seam)
         //{
@@ -1141,13 +1149,5 @@ namespace MagiCarver
         //}
 
         #endregion
-    }
-
-    internal class IntSort : IComparer<int>
-    {
-        public int Compare(int x, int y)
-        {
-            return x < y ? -1 : x > y ? 1 : 0;
-        }
     }
 }
