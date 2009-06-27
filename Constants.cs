@@ -29,12 +29,17 @@
             OPTIMAL
         } ;
 
+        public enum ActionType
+        {
+            NONE,
+            SHIRNK,
+            ENLARGE
+        } ;
+
         public enum Maps
         {
             NORMAL,
-            ENERGY,
-            HORIZONTAL_INDEX,
-            VERTICAL_INDEX
+            ENERGY
         } ;
 
         public enum EnergyType
@@ -49,13 +54,6 @@
             LEFT,
             RIGHT,
             STRAIGHT
-        } ;
-
-        public enum SeamPixelDirection
-        {
-            STRAIGHT,
-            LEFT,
-            RIGHT
         } ;
 
         #endregion

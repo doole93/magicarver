@@ -18,6 +18,7 @@ namespace MagiCarver
     {
         #region Data Members
 
+        // The bitmaps
         private Bitmap _bitmap;
         private Bitmap _energyMapBitmap;
 
@@ -25,27 +26,46 @@ namespace MagiCarver
 
         #region Properties
 
+        // The bitmap data
         private BitmapData       BitData              { get; set; }
 
-        private Bitmap OldBitmap { get; set; }
+        // The bitmap which is coherent with the caches
+        private Bitmap           OldBitmap            { get; set; }
+        private Size            OldSize                 { get; set; }
 
+        // Index maps
         private int[,]           HorizontalIndexMap   { get; set; }
         private int[,]           VerticalIndexMap     { get; set; }
 
+        // Calculated seams
         private List<Seam>       HorizontalSeams      { get; set; }
         private List<Seam>       VerticalSeams        { get; set; }
 
+        // Current dimensions
         private int              CurrentWidth         { get; set; }
         private int              CurrentHeight        { get; set; }
 
+        // Functions
         private EnergyFunction   EnergyFunction       { get; set; }
         private CumulativeEnergy SeamFunction         { get; set; }
 
-        private Size OldSize { get; set; }
-
+        // Number of removed / added seams
         private int RemovedSeams { get; set; }
         private int AddedSeams { get; set; }
+        
+        // Indicates whether operation has been taken after the caches were refreshed
+        private bool Dirty {
+            get
+            {
+                return RemovedSeams + AddedSeams > 0;
+            } 
+        }
+        
+        // History of operations for cache refresh
+        private Constants.ActionType LastAction { get; set; }
+        private Constants.Direction LastDirection { get; set; }
 
+        // User input
         private List<KeyValuePair<Point, Constants.EnergyType>> UserEnergy { get; set; }
 
         public Size ImageSize
@@ -102,6 +122,9 @@ namespace MagiCarver
             Bitmap = bitmap;
 
             SeamFunction = new CumulativeEnergy {EnergyFunction = EnergyFunction};
+
+            LastDirection = Constants.Direction.OPTIMAL;
+            LastAction = Constants.ActionType.NONE;
 
             RecomputeEntireEnergy();
         }
@@ -200,14 +223,54 @@ namespace MagiCarver
             return seams;
         }
 
+        /// <summary>
+        /// Carves a seam
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="paintSeam"></param>
+        /// <param name="k"></param>
         public void Carve(Constants.Direction direction, bool paintSeam, int k)
         {
-
-            if (AddedSeams > 0)
+            // Refresh the cache if last operation was enlargement
+            if (LastAction == Constants.ActionType.ENLARGE)
             {
                 InvalidateAndRefresh(Constants.Direction.OPTIMAL);
             }
 
+            // Handle optimal case. Since we are removing multiple seams, we will choose the direction with
+            // the minimal cumulative energy
+            if (direction == Constants.Direction.OPTIMAL)
+            {
+                k = Math.Min(k, HorizontalSeams.Count);
+
+                k = Math.Min(k, VerticalSeams.Count);
+
+                if (k == 0)
+                {
+                    InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+                }
+
+                double horEnergy = 0, vertEnergy = 0;
+
+                for (int i = 0; i < k; ++i)
+                {
+                    horEnergy += HorizontalSeams[i].SeamValue;
+                    vertEnergy += VerticalSeams[i].SeamValue;
+                }
+
+                horEnergy /= OldSize.Width;
+                vertEnergy /= OldSize.Height;
+
+                direction = horEnergy < vertEnergy ? Constants.Direction.HORIZONTAL : Constants.Direction.VERTICAL;
+            }
+
+            // If we changed direction, refresh the cache
+            if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
+            {
+                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+            }
+
+            // If we ran out of image or cache, refresh it
             if (direction == Constants.Direction.VERTICAL)
             {
                 if (k >= ImageSize.Width)
@@ -231,12 +294,20 @@ namespace MagiCarver
                 }
             }
 
-            //for (int i = 0; i < k; ++i)
-            //{
-            //    OnColorSeam(VerticalSeams[i].PixelLocations);
-            //}
+            List<Seam> seams = direction == Constants.Direction.VERTICAL ? VerticalSeams : HorizontalSeams;
+
+            if (paintSeam)
+            {
+                for (int i = 0; i < k; ++i)
+                {
+                    OnColorSeam(seams[i].PixelLocations);
+                }
+            }
 
             CarveSeams(direction, k - 1);
+
+            LastAction = Constants.ActionType.SHIRNK;
+            LastDirection = direction;
 
             RemovedSeams += k;
 
@@ -254,9 +325,59 @@ namespace MagiCarver
            // OnOperationComplete();
         }
 
+        /// <summary>
+        /// Recomputes the energy. Needed to allow user to add input as he wishes
+        /// </summary>
+        public void RecomputeBase()
+        {
+            if (Dirty)
+            {
+                RecomputeEntireEnergy();
+
+                LastAction = Constants.ActionType.NONE;
+                LastDirection = Constants.Direction.OPTIMAL;
+            }
+        }
+
+        /// <summary>
+        /// Adds seams. Exactly as Carve(). Need to merge the two
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="paintSeam"></param>
+        /// <param name="k"></param>
         public void Add(Constants.Direction direction, bool paintSeam, int k)
         {
-            if (RemovedSeams > 0)
+            if (LastAction == Constants.ActionType.SHIRNK)
+            {
+                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+            }
+
+            if (direction == Constants.Direction.OPTIMAL)
+            {
+                k = Math.Min(k, HorizontalSeams.Count);
+
+                k = Math.Min(k, VerticalSeams.Count);
+
+                if (k == 0)
+                {
+                    InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+                }
+
+                double horEnergy = 0, vertEnergy = 0;
+
+                for (int i = 0; i < k; ++i)
+                {
+                    horEnergy += HorizontalSeams[i].SeamValue;
+                    vertEnergy += VerticalSeams[i].SeamValue;
+                }
+
+                horEnergy /= OldSize.Width;
+                vertEnergy /= OldSize.Height;
+
+                direction = horEnergy < vertEnergy ? Constants.Direction.HORIZONTAL : Constants.Direction.VERTICAL;
+            }
+
+            if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
             {
                 InvalidateAndRefresh(Constants.Direction.OPTIMAL);
             }
@@ -275,8 +396,21 @@ namespace MagiCarver
                     InvalidateAndRefresh(direction);
                 }
             }
-            
+
+            List<Seam> seams = direction == Constants.Direction.VERTICAL ? VerticalSeams : HorizontalSeams;
+
+            if (paintSeam)
+            {
+                for (int i = 0; i < k; ++i)
+                {
+                    OnColorSeam(seams[i].PixelLocations);
+                }
+            }
+
             AddSeams(direction, k - 1);
+
+            LastAction = Constants.ActionType.ENLARGE;
+            LastDirection = direction;
 
             AddedSeams += k;
 
@@ -294,11 +428,18 @@ namespace MagiCarver
           //  OnOperationComplete();
         }
 
+        /// <summary>
+        /// Actually carves the seams
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="k"></param>
         private void CarveSeams(Constants.Direction direction, int k)
         {
+            // Finding the new dimensions
             int newWidth = direction == Constants.Direction.VERTICAL ? CurrentWidth - k - 1 : CurrentWidth;
             int newHeight = direction == Constants.Direction.HORIZONTAL ? CurrentHeight - k - 1 : CurrentHeight;
 
+            // Creating the new bitmap
             Bitmap newBitmap = new Bitmap(newWidth, newHeight, _bitmap.PixelFormat);
 
             BitmapData newBmd = newBitmap.LockBits(new Rectangle(0, 0, newBitmap.Width, newBitmap.Height),
@@ -306,6 +447,7 @@ namespace MagiCarver
 
             BitmapData oldBmd;
 
+            // Checking for old bitmap to work with
             if (OldBitmap == null)
             {
                 oldBmd = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
@@ -325,39 +467,24 @@ namespace MagiCarver
             {
                 unsafe
                 {
-                    //for (int i = 0; i < OldSize.Height; ++i)
                     Parallel.For(0, OldSize.Height, i =>
                     {
-                        // int skipCount = 0;
-
+                        // Setting starting lines
                         byte* dest = (byte*)newBmd.Scan0 + i * newBmd.Stride;
                         byte* src = (byte*)oldBmd.Scan0 + i * oldBmd.Stride;
 
                         for (int j = 0; j < OldSize.Width; ++j)
                         {
+                            // If this pixel was removed sometime after the last cache refresh
+                            // we skip it and mark it for energy correction
                             if (indexMap[j, i] <= k + RemovedSeams)
                             {
-                                //if (indexMap[j, i] <= RemovedSeams + k && indexMap[j, i] >= RemovedSeams)
-                                //{
-                                //    EnergyFunction.EnergyMap[j, i] = -1;
-                                //    //     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
-
-                                //    //if (!removedPixels.ContainsKey(indexMap[j, i]))
-                                //    //{
-                                //    //    removedPixels.Add(indexMap[j, i], new List<Point>());
-                                //    //}
-
-                                //    //removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
-                                //}
-                                //  else
-                                //   {
-                                //skipCount++;
-                                //   }
-
+                                EnergyFunction.EnergyMap[j, i] = -1;
                                 src += 3;
                                 continue;
                             }
 
+                            // Copy the pixel
                             dest[0] = src[0];
                             dest[1] = src[1];
                             dest[2] = src[2];
@@ -372,33 +499,17 @@ namespace MagiCarver
             {
                 unsafe
                 {
+                    // Same for horizontal
                     for (int i = 0; i < OldSize.Width; ++i)
                     {
                         byte* dest = (byte*)newBmd.Scan0 + i * 3;
                         byte* src = (byte*)oldBmd.Scan0 + i * 3;
 
-                        //        int skipCount = 0;
-
                         for (int j = 0; j < OldSize.Height; ++j)
                         {
                             if (indexMap[i, j] <= k + RemovedSeams)
                             {
-                                //if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
-                                //{
-                                //    EnergyFunction.EnergyMap[i, j] = -1;
-                                //    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
-
-                                //    //if (!removedPixels.ContainsKey(indexMap[i, j]))
-                                //    //{
-                                //    //    removedPixels.Add(indexMap[i, j], new List<Point>());
-                                //    //}
-
-                                //    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
-                                //}//else
-                                //    {
-                                //      skipCount++;
-                                //}
-                                //
+                                EnergyFunction.EnergyMap[i, j] = -1;
                                 src += oldBmd.Stride;
                                 continue;
                             }
@@ -413,13 +524,9 @@ namespace MagiCarver
                 }
             }
 
-            //foreach (List<Point> pointList in removedPixels.Values)
-            //{
-            //    OnColorSeam(pointList);
-            //}
-
             newBitmap.UnlockBits(newBmd);
 
+            // Save the old bitmap if it does not exist
             if (OldBitmap == null)
             {
                 _bitmap.UnlockBits(oldBmd);
@@ -432,6 +539,7 @@ namespace MagiCarver
             }
 
 
+            // Set the new bitmap
             _bitmap = newBitmap;
             BitData = newBmd;
 
@@ -439,6 +547,11 @@ namespace MagiCarver
             CurrentHeight = newHeight;
         }
 
+        /// <summary>
+        /// Actual addition of seams. Adding the seams with lowest energy
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="k"></param>
         private void AddSeams(Constants.Direction direction, int k)
         {
             int newWidth = direction == Constants.Direction.VERTICAL ? CurrentWidth + k + 1 : CurrentWidth;
@@ -464,74 +577,56 @@ namespace MagiCarver
 
             int[,] indexMap = (direction == Constants.Direction.VERTICAL ? VerticalIndexMap : HorizontalIndexMap);
 
-            //     Dictionary<int, List<Point>> removedPixels = new Dictionary<int, List<Point>>();
-
             if (direction == Constants.Direction.VERTICAL)
             {
                 unsafe
                 {
-                    //for (int i = 0; i < OldSize.Height; ++i)
                     Parallel.For(0, OldSize.Height, i =>
                     {
-                        // int skipCount = 0;
-
                         byte* dest = (byte*)newBmd.Scan0 + i * newBmd.Stride;
                         byte* src = (byte*)oldBmd.Scan0 + i * oldBmd.Stride;
 
                         for (int j = 0; j < OldSize.Width; ++j)
                         {
+                            // If this pixel is to be added
                             if (indexMap[j, i] <= k + AddedSeams)
                             {
-                             //       EnergyFunction.EnergyMap[j, i] = -1;
-                                    //     SeamFunction.VerticalCumulativeEnergyMap[j, i] = -1;
 
-                                    //if (!removedPixels.ContainsKey(indexMap[j, i]))
-                                    //{
-                                    //    removedPixels.Add(indexMap[j, i], new List<Point>());
-                                    //}
+                                // Mark it for cache refresh
+                                EnergyFunction.EnergyMap[j, i] = -1;
 
-                                    //removedPixels[indexMap[j, i]].Add(new Point(j - skipCount, i));
-                                //  else
-                                //   {
-                                //skipCount++;
-                                //   }
+                                // We firstly copy the pixel
+                                dest[0] = src[0];
+                                dest[1] = src[1];
+                                dest[2] = src[2];
 
-                               // if (j > 0)
-                              //  {
+                                dest += 3;
 
+                                // We then add the average of the pixel and its neighbours
+                                if (j > 0 && j < OldSize.Width - 1)
+                                {
+                                    dest[0] = (byte)((src[0] + src[3] + src[-3]) / 3);
+                                    dest[1] = (byte)((src[1] + src[4] + src[-2]) / 3);
+                                    dest[2] = (byte)((src[2] + src[5] + src[-1]) / 3); 
+                                }
+                                else if (j < OldSize.Width - 1)
+                                {
+                                    dest[0] = (byte)((src[0] + src[3]) / 2);
+                                    dest[1] = (byte)((src[1] + src[4]) / 2);
+                                    dest[2] = (byte)((src[2] + src[5]) / 2);
+                                }
+                                else if (j > 0)
+                                {
+                                    dest[0] = (byte)((src[0] + src[-3]) / 2);
+                                    dest[1] = (byte)((src[1] + src[-2]) / 2);
+                                    dest[2] = (byte)((src[2] + src[-1]) / 2);
+                                }
+                                else
+                                {
                                     dest[0] = src[0];
                                     dest[1] = src[1];
                                     dest[2] = src[2];
-
-                                    //src += 3;
-                                    dest += 3;
-
-                                //    if (j < OldSize.Width - 1)
-                                //    {
-                                //        dest[0] = (byte) ((src[-3] + src[0] + src[3])/3);
-                                //        dest[1] = (byte)((src[-2] + src[1] + src[4]) / 3);
-                                //        dest[2] = (byte)((src[-1] + src[2] + src[5]) / 3);
-                                //    }else
-                                //    {
-                                //        dest[0] = (byte)((src[-3] + src[0]) / 2);
-                                //        dest[1] = (byte)((src[-2] + src[1]) / 2);
-                                //        dest[2] = (byte)((src[-1] + src[2]) / 2);
-                                //    }
-                                //}else
-                                //{
-                                    if (j < OldSize.Width - 1)
-                                    {
-                                        dest[0] = (byte)((src[0] + src[3]) / 2);
-                                        dest[1] = (byte)((src[1] + src[4]) / 2);
-                                        dest[2] = (byte)((src[2] + src[5]) / 2);
-                                    }
-                                    else
-                                    {
-                                        dest[0] = src[0];
-                                        dest[1] = src[1];
-                                        dest[2] = src[2];
-                                    }
-                              //  }
+                                }
 
                                 src += 3;
                                 dest += 3;
@@ -557,42 +652,44 @@ namespace MagiCarver
                         byte* dest = (byte*)newBmd.Scan0 + i * 3;
                         byte* src = (byte*)oldBmd.Scan0 + i * 3;
 
-                        //        int skipCount = 0;
-
                         for (int j = 0; j < OldSize.Height; ++j)
                         {
                             if (indexMap[i, j] <= k + AddedSeams)
                             {
-                                //if (indexMap[i, j] <= RemovedSeams + k && indexMap[i, j] >= RemovedSeams)
-                                //{
-                                //    //EnergyFunction.EnergyMap[i, j] = -1;
-                                //    //   SeamFunction.HorizontalCumulativeEnergyMap[i, j] = -1;
-
-                                //    //if (!removedPixels.ContainsKey(indexMap[i, j]))
-                                //    //{
-                                //    //    removedPixels.Add(indexMap[i, j], new List<Point>());
-                                //    //}
-
-                                //    //removedPixels[indexMap[i, j]].Add(new Point(i, j - skipCount));
-                                //}//else
-                                //    {
-                                //      skipCount++;
-                                //}
-                                //
+                                EnergyFunction.EnergyMap[i, j] = -1;
+                                
                                 dest[0] = src[0];
                                 dest[1] = src[1];
                                 dest[2] = src[2];
 
                                 dest += newBmd.Stride;
 
-                                src += oldBmd.Stride;
-                                if (j < OldSize.Height - 1)
+                                if (j > 0 && j < OldSize.Height - 1)
                                 {
-                                    dest[0] = (byte)((dest[-newBmd.Stride] + src[0]) / 2);
-                                    dest[1] = (byte)((dest[-newBmd.Stride + 1] + src[1]) / 2);
-                                    dest[2] = (byte)((dest[-newBmd.Stride + 2] + src[2]) / 2);
+                                    dest[0] = (byte)((src[0] + src[oldBmd.Stride] + src[-oldBmd.Stride]) / 3);
+                                    dest[1] = (byte)((src[1] + src[oldBmd.Stride + 1] + src[-oldBmd.Stride + 1]) / 3);
+                                    dest[2] = (byte)((src[2] + src[oldBmd.Stride + 2] + src[-oldBmd.Stride + 2]) / 3);
+                                }
+                                else if (j < OldSize.Height - 1)
+                                {
+                                    dest[0] = (byte)((src[0] + src[oldBmd.Stride]) / 2);
+                                    dest[1] = (byte)((src[1] + src[oldBmd.Stride + 1]) / 2);
+                                    dest[2] = (byte)((src[2] + src[oldBmd.Stride + 2]) / 2);
+                                }
+                                else if (j > 0)
+                                {
+                                    dest[0] = (byte)((src[0] + src[-oldBmd.Stride]) / 2);
+                                    dest[1] = (byte)((src[1] + src[-oldBmd.Stride + 1]) / 2);
+                                    dest[2] = (byte)((src[2] + src[-oldBmd.Stride + 2]) / 2);
+                                }
+                                else
+                                {
+                                    dest[0] = src[0];
+                                    dest[1] = src[1];
+                                    dest[2] = src[2];
                                 }
 
+                                src += oldBmd.Stride;
                                 dest += newBmd.Stride;
                                 continue;
                             }
@@ -606,11 +703,6 @@ namespace MagiCarver
                     }
                 }
             }
-
-            //foreach (List<Point> pointList in removedPixels.Values)
-            //{
-            //    OnColorSeam(pointList);
-            //}
 
             newBitmap.UnlockBits(newBmd);
 
@@ -633,20 +725,22 @@ namespace MagiCarver
             CurrentHeight = newHeight;
         }
 
+        /// <summary>
+        /// Resposible for cache rebuild / refresh
+        /// </summary>
+        /// <param name="direction"></param>
         private void InvalidateAndRefresh(Constants.Direction direction)
         {
 
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                                                    ImageLockMode.ReadOnly, _bitmap.PixelFormat);
 
-            //EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, direction);
-
-            EnergyFunction.ComputeEnergy(BitData, ImageSize);
-
+            // Refreshes the pixel's energy
+            EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, LastDirection);
+                
             _bitmap.UnlockBits(BitData);
 
-            //    SeamFunction.RecomputeEnergyMapRange(ImageSize, OldSize, direction);
-
+            // Recomputes the cumulativer energy map
             if (direction == Constants.Direction.OPTIMAL || direction == Constants.Direction.VERTICAL)
             {
                 SeamFunction.ComputeEntireEnergyMap(Constants.Direction.VERTICAL, ImageSize);
@@ -657,6 +751,7 @@ namespace MagiCarver
                 SeamFunction.ComputeEntireEnergyMap(Constants.Direction.HORIZONTAL, ImageSize);
             }
             
+            // Recalculates the index maps and rebuilds the seams
             CalculateIndexMaps(direction);
           
             OldSize = ImageSize;
@@ -664,10 +759,21 @@ namespace MagiCarver
             OldBitmap = null;
 
             RemovedSeams = AddedSeams = 0;
+
+            LastAction = Constants.ActionType.NONE;
+            LastDirection = Constants.Direction.OPTIMAL;
         }
 
+        /// <summary>
+        /// Generates the energy map bitmap
+        /// </summary>
         private void GenerateEnergyMapBitmap()
         {
+            if (Dirty)
+            {
+                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+            }
+
             _energyMapBitmap = new Bitmap(_bitmap.Width, _bitmap.Height, PixelFormat.Format24bppRgb);
 
             BitmapData energyMapBmd = _energyMapBitmap.LockBits(new Rectangle(0, 0, _energyMapBitmap.Width, _energyMapBitmap.Height),
@@ -685,6 +791,10 @@ namespace MagiCarver
             _energyMapBitmap.UnlockBits(energyMapBmd);
         }
 
+        /// <summary>
+        /// Sets the user input energy
+        /// </summary>
+        /// <param name="strokes"></param>
         public void SetEnergy(StrokeCollection strokes)
         {
             UserEnergy = new List<KeyValuePair<Point, Constants.EnergyType>>();
@@ -708,7 +818,9 @@ namespace MagiCarver
 
             RefineEnergy();
         }
-
+        /// <summary>
+        /// Helper method to set user input
+        /// </summary>
         private void RefineEnergy()
         {
             foreach (KeyValuePair<Point, Constants.EnergyType> userEnergy in UserEnergy)
@@ -723,6 +835,10 @@ namespace MagiCarver
             }
         }
 
+        /// <summary>
+        /// Calculates the index maps
+        /// </summary>
+        /// <param name="direction"></param>
         public void CalculateIndexMaps(Constants.Direction direction)
         {
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
@@ -762,12 +878,12 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(300, ImageSize.Height));
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(150, ImageSize.Height));
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(300, ImageSize.Width));
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(150, ImageSize.Width));
                                               });
 
             if (direction != Constants.Direction.VERTICAL)
@@ -1149,5 +1265,6 @@ namespace MagiCarver
         //}
 
         #endregion
+
     }
 }

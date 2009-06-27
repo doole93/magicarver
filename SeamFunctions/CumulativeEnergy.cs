@@ -9,14 +9,18 @@ namespace MagiCarver.SeamFunctions
     {
         #region Data Members
 
+        // The energy function
         public EnergyFunction EnergyFunction { get; set; }
 
+        // The energy maps
         public int[,] VerticalCumulativeEnergyMap { get; set; }
         public int[,] HorizontalCumulativeEnergyMap { get; set; }
 
+        // The pixel-used map. Determines if a specific pixel is used in a seam
         private bool[,] VerticalCumulativeEnergyMapUsed { get; set; }
         private bool[,] HorizontalCumulativeEnergyMapUsed { get; set; }
 
+        // The energies of the end-pixels in seams, sorted from low to high, in order to find seams
         private List<KeyValuePair<Point, double>> LowestVerticalSeamsEnergy;
         private List<KeyValuePair<Point, double>> LowestHorizontalSeamsEnergy;
 
@@ -24,6 +28,11 @@ namespace MagiCarver.SeamFunctions
 
         #region Other Methods
 
+        /// <summary>
+        /// Cumputes the entire cumulative energy map
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="size"></param>
         public void ComputeEntireEnergyMap(Constants.Direction direction, Size size)
         {
             if (direction == Constants.Direction.VERTICAL)
@@ -39,11 +48,17 @@ namespace MagiCarver.SeamFunctions
                 LowestHorizontalSeamsEnergy = new List<KeyValuePair<Point, double>>();
             }
 
-            ComputeSubEnergyMap(direction, size);
+            ComputeEnergyMap(direction, size);
         }
 
-        private void ComputeSubEnergyMap(Constants.Direction direction, Size size)
+        /// <summary>
+        /// The actual computing of the energy map.
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="size"></param>
+        private void ComputeEnergyMap(Constants.Direction direction, Size size)
         {
+            // Copy the top / left row / column of energy to start with.
             if (direction == Constants.Direction.VERTICAL)
             {
                 for (int i = 0; i < size.Width; ++i)
@@ -58,6 +73,7 @@ namespace MagiCarver.SeamFunctions
                 }
             }
 
+            // Finding the best neighbour on the way up / right, choosing it.
             if (direction == Constants.Direction.VERTICAL)
             {
                 for (int i = 1; i < size.Height; ++i)
@@ -108,9 +124,15 @@ namespace MagiCarver.SeamFunctions
                 }
             }
 
+            // Get the energy of the end pixels.
             ComputeLowestSeamEnergy(direction, size);
         }
 
+        /// <summary>
+        /// Gets the cumulative energy of the end pixels and sorts it in a accending matter.
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="size"></param>
         private void ComputeLowestSeamEnergy(Constants.Direction direction, Size size)
         {
             if (direction == Constants.Direction.VERTICAL)
@@ -133,6 +155,12 @@ namespace MagiCarver.SeamFunctions
             }
         }
 
+        /// <summary>
+        /// Renders a specific pixels taken by some seam.
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
         private void SetUsedPixel(Constants.Direction direction, int x, int y)
         {
             if (direction == Constants.Direction.VERTICAL)
@@ -145,6 +173,14 @@ namespace MagiCarver.SeamFunctions
             }
         }
 
+        /// <summary>
+        /// Builds the Kth best seam in a specific direction.
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="size"></param>
+        /// <param name="k"></param>
+        /// <param name="indexMap"></param>
+        /// <returns></returns>
         public Seam GetKthLowestEnergySeam(Constants.Direction direction, Size size, int k, int[,] indexMap)
         {
             List<KeyValuePair<Point, double>> lowestSeamsEnergy = (direction == Constants.Direction.VERTICAL ? LowestVerticalSeamsEnergy : LowestHorizontalSeamsEnergy);
@@ -156,10 +192,22 @@ namespace MagiCarver.SeamFunctions
             return seam;
         }
 
+        /// <summary>
+        /// Builds the Kth best seam in a specific direction. Also sets the index map accordingly.
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="size"></param>
+        /// <param name="indexMap"></param>
+        /// <param name="k"></param>
+        /// <returns></returns>
         private Seam BuildSeam(Constants.Direction direction, int x, int y, Size size, int[,] indexMap, int k)
         {
+            // Sets the starting pixel as used.
             SetUsedPixel(direction, x, y);
 
+            // Updates the index map.
             indexMap[x, y] = k;
 
             int pixelCount = direction == Constants.Direction.VERTICAL ? size.Height : size.Width;
@@ -171,6 +219,9 @@ namespace MagiCarver.SeamFunctions
 
             int pixelIndex = pixelCount - 1;
 
+            // For every pixel of the seam, get the possible neighbours, check which has the lowest cumulative energy.
+            // I allowed left/right skipping of pixels, but the forward. Allowing forward skipping requires too much managment
+            // due to the change of the seam length.
             while (pixelIndex > 0)
             {
                 KeyValuePair<Point, int> leftNeighbour;
@@ -212,6 +263,16 @@ namespace MagiCarver.SeamFunctions
             return seam;
         }
 
+        /// <summary>
+        /// Gets the cumulative energy of the next unused neighbour of some pixel while building the seam.
+        /// Getting out of bounds will resolve in returning 'infinite' energy.
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="size"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
         private KeyValuePair<Point, int> GetNeighbour(Constants.Direction direction, int x, int y, Size size, Constants.NeighbourType type)
         {
             int currentX = x, currentY = y, currentEnergy = int.MaxValue;
@@ -403,7 +464,7 @@ namespace MagiCarver.SeamFunctions
         //        HorizontalCumulativeEnergyMapUsed = new bool[size.Width, size.Height];
         //    }
 
-        //    ComputeSubEnergyMap(direction, minIndex, maxIndex - count, size);
+        //    ComputeEnergyMap(direction, minIndex, maxIndex - count, size);
         //}
 
         #endregion
