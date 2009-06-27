@@ -3,8 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     SizeToContent="WidthAndHeight"
     Loaded="Window_Loaded"
-    ResizeMode="CanResizeWithGrip"
-    SizeChanged="Window_SizeChanged"
+    ResizeMode="NoResize"
     WindowStyle="ToolWindow">
    
     <Grid>
@@ -27,7 +26,7 @@
                     <MenuItem Header="_Horizontal" IsCheckable="True" Tag="1" Click="ChangeDirection_Clicked" />
                     <MenuItem Header="_Optimal" IsChecked="True" IsCheckable="True" Tag="2" Click="ChangeDirection_Clicked" />
                 </MenuItem>
-                <MenuItem x:Name="menuItemPaintSeam" Header="_Paint Seam" IsCheckable="True" IsChecked="True" Click="PaintSeam_Clicked"/>
+                <MenuItem x:Name="menuItemPaintSeam" Header="_Paint Seam" IsEnabled="False" IsCheckable="True" IsChecked="False" Click="PaintSeam_Clicked"/>
                 <MenuItem x:Name="menuItemCarve" Header="_Carve Seam" FontWeight="bold" IsEnabled="False" Click="Carve_Clicked"/>
                 <MenuItem x:Name="menuItemAddSeam" Header="_Add Seam" FontWeight="bold" IsEnabled="False" Click="AddSeam_Clicked"/>
             </MenuItem>
