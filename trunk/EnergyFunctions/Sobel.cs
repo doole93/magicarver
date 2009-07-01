@@ -134,7 +134,7 @@ namespace MagiCarver.EnergyFunctions
                                                                     bitmapData.Height));
                                     }
 
-                                    while (EnergyMap[j + skipCount, i] == -1)
+                                    while (j + skipCount < oldSize.Width && EnergyMap[j + skipCount, i] == -1)
                                     {
                                         skipCount++;
                                     }
@@ -169,7 +169,7 @@ namespace MagiCarver.EnergyFunctions
                                                                     bitmapData.Height));
                                     }
 
-                                    while (EnergyMap[i, j + skipCount] == -1)
+                                    while (j + skipCount < oldSize.Height && EnergyMap[i, j + skipCount] == -1)
                                     {
                                         skipCount++;
                                     }
@@ -216,7 +216,11 @@ namespace MagiCarver.EnergyFunctions
                                                            new Size(bitmapData.Width,
                                                                     bitmapData.Height));
 
-                                    } while (EnergyMap[++j, i] == -1);
+                                    } while (++j < oldSize.Width && EnergyMap[j, i] == -1);
+
+                                    if (j >= oldSize.Width){
+                                        continue;
+                                    }
 
                                     newEnergyMap[j + skipCount, i] =
                                         GetSobelEnergy(bitmapData, j, i,
@@ -260,7 +264,12 @@ namespace MagiCarver.EnergyFunctions
                                                            new Size(bitmapData.Width,
                                                                     bitmapData.Height));
 
-                                    } while (EnergyMap[i, ++j] == -1);
+                                    } while (++j < oldSize.Height && EnergyMap[i, j] == -1);
+
+                                    if (j >= oldSize.Height)
+                                    {
+                                        continue;
+                                    }
 
                                     newEnergyMap[i, j + skipCount] =
                                         GetSobelEnergy(bitmapData, i, j,

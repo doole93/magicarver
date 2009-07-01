@@ -26,6 +26,8 @@
         {
             VERTICAL,
             HORIZONTAL,
+            BOTH,
+            NONE,
             OPTIMAL
         } ;
 
