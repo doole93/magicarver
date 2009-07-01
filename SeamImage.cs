@@ -60,6 +60,8 @@ namespace MagiCarver
                 return RemovedSeams + AddedSeams > 0;
             } 
         }
+
+        private Object lockObject = new Object();
         
         // History of operations for cache refresh
         private Constants.ActionType LastAction { get; set; }
@@ -123,7 +125,7 @@ namespace MagiCarver
 
             SeamFunction = new CumulativeEnergy {EnergyFunction = EnergyFunction};
 
-            LastDirection = Constants.Direction.OPTIMAL;
+            LastDirection = Constants.Direction.NONE;
             LastAction = Constants.ActionType.NONE;
 
             RecomputeEntireEnergy();
@@ -234,40 +236,13 @@ namespace MagiCarver
             // Refresh the cache if last operation was enlargement
             if (LastAction == Constants.ActionType.ENLARGE)
             {
-                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
-            }
-
-            // Handle optimal case. Since we are removing multiple seams, we will choose the direction with
-            // the minimal cumulative energy
-            if (direction == Constants.Direction.OPTIMAL)
-            {
-                k = Math.Min(k, HorizontalSeams.Count);
-
-                k = Math.Min(k, VerticalSeams.Count);
-
-                if (k == 0)
-                {
-                    InvalidateAndRefresh(Constants.Direction.OPTIMAL);
-                }
-
-                double horEnergy = 0, vertEnergy = 0;
-
-                for (int i = 0; i < k; ++i)
-                {
-                    horEnergy += HorizontalSeams[i].SeamValue;
-                    vertEnergy += VerticalSeams[i].SeamValue;
-                }
-
-                horEnergy /= OldSize.Width;
-                vertEnergy /= OldSize.Height;
-
-                direction = horEnergy < vertEnergy ? Constants.Direction.HORIZONTAL : Constants.Direction.VERTICAL;
+                InvalidateAndRefresh(Constants.Direction.BOTH);
             }
 
             // If we changed direction, refresh the cache
             if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
             {
-                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+                InvalidateAndRefresh(Constants.Direction.BOTH);
             }
 
             // If we ran out of image or cache, refresh it
@@ -335,7 +310,7 @@ namespace MagiCarver
                 RecomputeEntireEnergy();
 
                 LastAction = Constants.ActionType.NONE;
-                LastDirection = Constants.Direction.OPTIMAL;
+                LastDirection = Constants.Direction.NONE;
             }
         }
 
@@ -347,85 +322,64 @@ namespace MagiCarver
         /// <param name="k"></param>
         public void Add(Constants.Direction direction, bool paintSeam, int k)
         {
-            if (LastAction == Constants.ActionType.SHIRNK)
+            lock (lockObject)
             {
-                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
-            }
 
-            if (direction == Constants.Direction.OPTIMAL)
-            {
-                k = Math.Min(k, HorizontalSeams.Count);
-
-                k = Math.Min(k, VerticalSeams.Count);
-
-                if (k == 0)
+                if (LastAction == Constants.ActionType.SHIRNK)
                 {
-                    InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+                    InvalidateAndRefresh(Constants.Direction.BOTH);
                 }
 
-                double horEnergy = 0, vertEnergy = 0;
-
-                for (int i = 0; i < k; ++i)
+                if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
                 {
-                    horEnergy += HorizontalSeams[i].SeamValue;
-                    vertEnergy += VerticalSeams[i].SeamValue;
+                    InvalidateAndRefresh(Constants.Direction.BOTH);
                 }
 
-                horEnergy /= OldSize.Width;
-                vertEnergy /= OldSize.Height;
-
-                direction = horEnergy < vertEnergy ? Constants.Direction.HORIZONTAL : Constants.Direction.VERTICAL;
-            }
-
-            if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
-            {
-                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
-            }
-
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                if (VerticalSeams.Count < k)
+                if (direction == Constants.Direction.VERTICAL)
                 {
-                    InvalidateAndRefresh(direction);
+                    if (VerticalSeams.Count < k)
+                    {
+                        InvalidateAndRefresh(direction);
+                    }
                 }
-            }
-            else
-            {
-                if (HorizontalSeams.Count < k)
+                else
                 {
-                    InvalidateAndRefresh(direction);
+                    if (HorizontalSeams.Count < k)
+                    {
+                        InvalidateAndRefresh(direction);
+                    }
                 }
-            }
 
-            List<Seam> seams = direction == Constants.Direction.VERTICAL ? VerticalSeams : HorizontalSeams;
+                List<Seam> seams = direction == Constants.Direction.VERTICAL ? VerticalSeams : HorizontalSeams;
 
-            if (paintSeam)
-            {
-                for (int i = 0; i < k; ++i)
+                if (paintSeam)
                 {
-                    OnColorSeam(seams[i].PixelLocations);
+                    for (int i = 0; i < k; ++i)
+                    {
+                        OnColorSeam(seams[i].PixelLocations);
+                    }
                 }
+
+                AddSeams(direction, k - 1);
+
+                LastAction = Constants.ActionType.ENLARGE;
+                LastDirection = direction;
+
+                AddedSeams += k;
+
+                if (direction == Constants.Direction.VERTICAL)
+                {
+                    VerticalSeams.RemoveRange(0, k);
+                }
+                else
+                {
+                    HorizontalSeams.RemoveRange(0, k);
+                }
+
+                OnImageChanged();
+
+                //  OnOperationComplete();
             }
-
-            AddSeams(direction, k - 1);
-
-            LastAction = Constants.ActionType.ENLARGE;
-            LastDirection = direction;
-
-            AddedSeams += k;
-
-            if (direction == Constants.Direction.VERTICAL)
-            {
-                VerticalSeams.RemoveRange(0, k);
-            }
-            else
-            {
-                HorizontalSeams.RemoveRange(0, k);
-            }
-
-            OnImageChanged();
-
-          //  OnOperationComplete();
         }
 
         /// <summary>
@@ -741,12 +695,12 @@ namespace MagiCarver
             _bitmap.UnlockBits(BitData);
 
             // Recomputes the cumulativer energy map
-            if (direction == Constants.Direction.OPTIMAL || direction == Constants.Direction.VERTICAL)
+            if (direction == Constants.Direction.BOTH || direction == Constants.Direction.VERTICAL)
             {
                 SeamFunction.ComputeEntireEnergyMap(Constants.Direction.VERTICAL, ImageSize);
             }
 
-            if (direction == Constants.Direction.OPTIMAL || direction == Constants.Direction.HORIZONTAL)
+            if (direction == Constants.Direction.BOTH || direction == Constants.Direction.HORIZONTAL)
             {
                 SeamFunction.ComputeEntireEnergyMap(Constants.Direction.HORIZONTAL, ImageSize);
             }
@@ -761,7 +715,7 @@ namespace MagiCarver
             RemovedSeams = AddedSeams = 0;
 
             LastAction = Constants.ActionType.NONE;
-            LastDirection = Constants.Direction.OPTIMAL;
+            LastDirection = Constants.Direction.NONE;
         }
 
         /// <summary>
@@ -771,7 +725,7 @@ namespace MagiCarver
         {
             if (Dirty)
             {
-                InvalidateAndRefresh(Constants.Direction.OPTIMAL);
+                InvalidateAndRefresh(Constants.Direction.BOTH);
             }
 
             _energyMapBitmap = new Bitmap(_bitmap.Width, _bitmap.Height, PixelFormat.Format24bppRgb);
@@ -799,40 +753,50 @@ namespace MagiCarver
         {
             UserEnergy = new List<KeyValuePair<Point, Constants.EnergyType>>();
 
-            foreach (Stroke stroke in strokes)
+            Constants.EnergyType[,] userEnergy = new Constants.EnergyType[CurrentWidth, CurrentHeight];
+            
+            Parallel.ForEach(strokes, delegate(Stroke stroke)
             {
                 bool isHigh = stroke.DrawingAttributes.Color == Colors.Yellow ? true : false;
 
-                // ZTODO: Need parallel foreach? Need parallel here.
                 foreach (StylusPoint point in stroke.StylusPoints)
                 {
-                    for (int i = 0; i < stroke.DrawingAttributes.Width; ++i)
+                                     for (int i = 0; i < stroke.DrawingAttributes.Width; ++i)
                     {
                         for (int j = 0; j < stroke.DrawingAttributes.Height; ++j)
                         {
-                            UserEnergy.Add(new KeyValuePair<Point, Constants.EnergyType>(new Point((int) (point.X - stroke.DrawingAttributes.Width / 2 + i), (int) (point.Y - stroke.DrawingAttributes.Height / 2 + j)), isHigh ? Constants.EnergyType.MAX : Constants.EnergyType.MIN));
-                        }
-                    }  
-                }
-            }
+                            int x = (int)(point.X - stroke.DrawingAttributes.Width / 2 + i);
+                            int y = (int)(point.Y - stroke.DrawingAttributes.Height / 2 + j);
 
-            RefineEnergy();
+                            if (Utilities.InBounds(x, y, ImageSize))
+                            {
+                                userEnergy[x, y] = isHigh ? Constants.EnergyType.MAX : Constants.EnergyType.MIN;
+                            }
+                        }
+                    }   
+                }
+
+            });
+
+            RefineEnergy(userEnergy);
         }
         /// <summary>
         /// Helper method to set user input
         /// </summary>
-        private void RefineEnergy()
+        private void RefineEnergy(Constants.EnergyType[,] userEnergy)
         {
-            foreach (KeyValuePair<Point, Constants.EnergyType> userEnergy in UserEnergy)
+            Parallel.For(0, CurrentWidth, delegate(int i)
             {
-                if (!Utilities.InBounds(userEnergy.Key.X, userEnergy.Key.Y, ImageSize))
+                for (int j = 0; j < CurrentHeight; ++j)
                 {
-                    continue;
+                    if (userEnergy[i, j] != 0)
+                    {
+                        // ZTODO: Fix this. It should be something defined and not '10000'...
+                        EnergyFunction.EnergyMap[i, j] =
+                            (userEnergy[i, j] == Constants.EnergyType.MAX ? Constants.MAX_ENERGY : Constants.MIN_ENERGY);
+                    }
                 }
-                // ZTODO: Fix this. It should be something defined and not '10000'...
-                EnergyFunction.EnergyMap[userEnergy.Key.X, userEnergy.Key.Y] =
-                    (userEnergy.Value == Constants.EnergyType.MAX ? Constants.MAX_ENERGY : Constants.MIN_ENERGY);
-            }
+            });
         }
 
         /// <summary>
@@ -847,7 +811,7 @@ namespace MagiCarver
             HorizontalIndexMap = new int[CurrentWidth, CurrentHeight];
             VerticalIndexMap = new int[CurrentWidth, CurrentHeight];
 
-            if (direction == Constants.Direction.OPTIMAL)
+            if (direction == Constants.Direction.BOTH)
             {
                 for (int i = 0; i < CurrentWidth; ++i)
                 {
@@ -878,12 +842,12 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(150, ImageSize.Height));
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(100, ImageSize.Height));
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(150, ImageSize.Width));
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(100, ImageSize.Width));
                                               });
 
             if (direction != Constants.Direction.VERTICAL)

@@ -1,4 +1,4 @@
-﻿<Window x:Class="MagiCarver.MainWindow"
+﻿<Window x:Class="MagiCarver.MainWindow" x:Name="main"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     SizeToContent="WidthAndHeight"
@@ -41,25 +41,40 @@
             </MenuItem>
         </Menu>
         
-        <ToolBar x:Name="theToolbar" Grid.Row="1">
+        <ToolBar x:Name="theToolbar" Grid.Row="1" Background="Transparent">
             <ToggleButton x:Name="ToggleHighEng" ToolTip="High Energy Brush" MaxHeight="30" MaxWidth="30" Click="ToggleBrush_Clicked" IsEnabled="False">
-                <Image Source="Resources\Brush_Yellow.png"/>
+                <Image Source="Resources\high_eng.png"/>
             </ToggleButton>
             <ToggleButton x:Name="ToggleLowEng" ToolTip="Low Energy Brush" MaxHeight="30" MaxWidth="30" Click="ToggleBrush_Clicked" IsEnabled="False">
-                <Image Source="Resources\Brush_Green.png"/>
+                <Image Source="Resources\low_eng.png"/>
             </ToggleButton>
             <Button x:Name="DoneEditingButton" ToolTip="Done Editing" MaxHeight="30" MaxWidth="30" IsEnabled="False" Click="DoneEditing_Clicked">
-                <Image Source="Resources\Done.png"/>
+                <Image Source="Resources\accept.png"/>
             </Button>
+            <Separator/>
+            <WrapPanel Margin="5 0 0 0">
+                <TextBlock Margin="0 5 0 0" Text="Seams: "/>
+                <Slider  Margin="0 2 0 0" AutoToolTipPlacement="BottomRight" TickFrequency="5" TickPlacement="BottomRight" Minimum="0" Maximum="50" Value="20" MinWidth="100" MaxWidth="500" ValueChanged="Slider_ValueChanged"/>
+                <Button Margin="5 0 0 0" x:Name="CarveButton" ToolTip="Carve Seams" MaxHeight="30" MaxWidth="30" IsEnabled="False" Click="Carve_Clicked">
+                    <Image Source="Resources\carve.png"/>
+                </Button>
+                <Button Margin="5 0 0 0" x:Name="AddButton" ToolTip="Add Seams" MaxHeight="30" MaxWidth="30" IsEnabled="False" Click="AddSeam_Clicked">
+                    <Image Source="Resources\add.png"/>
+                </Button>
+            </WrapPanel>
         </ToolBar>
 
-        <InkCanvas Background="AliceBlue" Grid.Row="2" IsEnabled="false" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
-            <InkCanvas.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
-                </ContextMenu>
-            </InkCanvas.ContextMenu>
-            <Image x:Name="theImage"/>
+            <InkCanvas Background="AliceBlue" Grid.Row="2" Width="100" Height="100" IsEnabled="true" x:Name="theCanvas" Initialized="InkCanvas_Initialized">
+                <InkCanvas.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
+                    </ContextMenu>
+                </InkCanvas.ContextMenu>
+                <Image x:Name="theImage"/>
+            <Thumb Name="myThumb" InkCanvas.Left="80" InkCanvas.Top="80" Background="Blue" 
+                   Width="20" Height="20" DragDelta="onDragDelta" 
+                   DragStarted="onDragStarted" DragCompleted="onDragCompleted">
+            </Thumb>
         </InkCanvas>
 
         <StatusBar x:Name="theStatusBar" Grid.Row="3">

@@ -11,6 +11,7 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using MagiCarver.EnergyFunctions;
 using Size=System.Drawing.Size;
+using System.Windows.Controls.Primitives;
 
 namespace MagiCarver
 {
@@ -30,6 +31,7 @@ namespace MagiCarver
         private Constants.Direction Direction { get; set; }
         private DrawingAttributes   Highlighter { get; set; }
         private bool                CanOperate { get; set; }
+        private int NumSeamsToCarveOrAdd { get; set; }
 
         #endregion
 
@@ -41,6 +43,7 @@ namespace MagiCarver
 
             Direction = Constants.Direction.OPTIMAL;
             PaintSeam = false;
+            NumSeamsToCarveOrAdd = 20;
         }
 
         #endregion
@@ -93,9 +96,6 @@ namespace MagiCarver
                    
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
                        {
-                           ResizeMode = ResizeMode.NoResize;
-
-
                            if (bitmap != null)
                            {
                                SetImageSource(bitmap, openFile.SafeFileName);
@@ -198,7 +198,7 @@ namespace MagiCarver
             WorkInProgress(true);
 
             Thread t1 = new Thread(delegate() {
-                SeamImage.Carve(Direction, PaintSeam, 16);
+                SeamImage.Carve(Direction, PaintSeam, NumSeamsToCarveOrAdd);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate { WorkInProgress(false); SizeChanged += Window_DummySizeChanged; }));
             });
 
@@ -251,13 +251,11 @@ namespace MagiCarver
 
             Thread t1 = new Thread(delegate()
             {
-                SeamImage.Add(Direction, PaintSeam, 50);
+                SeamImage.Add(Direction, PaintSeam, NumSeamsToCarveOrAdd);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate { WorkInProgress(false); SizeChanged += Window_DummySizeChanged; }));
             });
 
             t1.Start();
-
-
         }
 
         private void Window_DummySizeChanged(object sender, SizeChangedEventArgs e)
@@ -276,66 +274,66 @@ namespace MagiCarver
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (e.WidthChanged && CanOperate && e.PreviousSize.Width > e.NewSize.Width && SeamImage.ImageSize.Width > e.PreviousSize.Width - e.NewSize.Width && (int)(e.PreviousSize.Width - e.NewSize.Width) > 0)
-            {
-                WorkInProgress(true);
+            //if (e.WidthChanged && CanOperate && e.PreviousSize.Width > e.NewSize.Width && SeamImage.ImageSize.Width > e.PreviousSize.Width - e.NewSize.Width && (int)(e.PreviousSize.Width - e.NewSize.Width) > 0)
+            //{
+            //    WorkInProgress(true);
 
-                Thread t1 = new Thread(delegate()
-                {
-                    SeamImage.Carve(Constants.Direction.VERTICAL, false, (int)(e.PreviousSize.Width - e.NewSize.Width));
-                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-                });
+            //    Thread t1 = new Thread(delegate()
+            //    {
+            //        SeamImage.Carve(Constants.Direction.VERTICAL, false, (int)(e.PreviousSize.Width - e.NewSize.Width));
+            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            //    });
 
-                t1.Start();
+            //    t1.Start();
 
-                t1.Join();
-            }
-            else if (e.HeightChanged && CanOperate && e.PreviousSize.Height > e.NewSize.Height && SeamImage.ImageSize.Height > e.PreviousSize.Height - e.NewSize.Height && (int)(e.PreviousSize.Height - e.NewSize.Height) > 0)
-            {
-                WorkInProgress(true);
+            //    t1.Join();
+            //}
+            //else if (e.HeightChanged && CanOperate && e.PreviousSize.Height > e.NewSize.Height && SeamImage.ImageSize.Height > e.PreviousSize.Height - e.NewSize.Height && (int)(e.PreviousSize.Height - e.NewSize.Height) > 0)
+            //{
+            //    WorkInProgress(true);
 
-                Thread t1 = new Thread(delegate()
-                {
-                    SeamImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(e.PreviousSize.Height - e.NewSize.Height));
-                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-                });
+            //    Thread t1 = new Thread(delegate()
+            //    {
+            //        SeamImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(e.PreviousSize.Height - e.NewSize.Height));
+            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            //    });
 
-                t1.Start();
+            //    t1.Start();
 
-                t1.Join();
-            }
-            else if (e.WidthChanged && CanOperate && e.PreviousSize.Width < e.NewSize.Width && (int)(e.NewSize.Width - e.PreviousSize.Width) > 0)
-            {
-                WorkInProgress(true);
+            //    t1.Join();
+            //}
+            //else if (e.WidthChanged && CanOperate && e.PreviousSize.Width < e.NewSize.Width && (int)(e.NewSize.Width - e.PreviousSize.Width) > 0)
+            //{
+            //    WorkInProgress(true);
 
-                Thread t1 = new Thread(delegate()
-                {
-                    SeamImage.Add(Constants.Direction.VERTICAL, false, (int)(e.NewSize.Width - e.PreviousSize.Width));
-                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-                });
+            //    Thread t1 = new Thread(delegate()
+            //    {
+            //        SeamImage.Add(Constants.Direction.VERTICAL, false, (int)(e.NewSize.Width - e.PreviousSize.Width));
+            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            //    });
 
-                t1.Start();
+            //    t1.Start();
 
-                t1.Join();
-            }
-            else if (e.HeightChanged && CanOperate && e.PreviousSize.Height < e.NewSize.Height && (int)(e.NewSize.Height - e.PreviousSize.Height) > 0)
-            {
-                WorkInProgress(true);
+            //    t1.Join();
+            //}
+            //else if (e.HeightChanged && CanOperate && e.PreviousSize.Height < e.NewSize.Height && (int)(e.NewSize.Height - e.PreviousSize.Height) > 0)
+            //{
+            //    WorkInProgress(true);
 
-                Thread t1 = new Thread(delegate()
-                {
-                    SeamImage.Add(Constants.Direction.HORIZONTAL, false, (int)(e.NewSize.Height - e.PreviousSize.Height));
-                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-                });
+            //    Thread t1 = new Thread(delegate()
+            //    {
+            //        SeamImage.Add(Constants.Direction.HORIZONTAL, false, (int)(e.NewSize.Height - e.PreviousSize.Height));
+            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+            //    });
 
-                t1.Start();
+            //    t1.Start();
 
-                t1.Join();
-            }
-            else
-            {
-                CanOperate = true;
-            }
+            //    t1.Join();
+            //}
+            //else
+            //{
+            //    CanOperate = true;
+            //}
         }
 
         private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)
@@ -383,13 +381,10 @@ namespace MagiCarver
                    SeamImage.RecomputeBase();
                    SeamImage.SetEnergy(strokes);
                    SeamImage.RecomputeEntireMap();
-                   SeamImage.CalculateIndexMaps(Constants.Direction.OPTIMAL);
+                   SeamImage.CalculateIndexMaps(Constants.Direction.BOTH);
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
                    {
                        WorkInProgress(false);
-                       ResizeMode = ResizeMode.CanResize;
-                       CanOperate = false;
-                       SizeChanged += Window_SizeChanged;
                    }));
 
 
@@ -414,8 +409,12 @@ namespace MagiCarver
             if (bitmapName != null)
             {
                 Title = Constants.TITLE + " - " + bitmapName;
-                Width = bitmap.Width;
-                Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
+                //Width = bitmap.Width;
+                //Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
+                theCanvas.Height = bitmap.Height;
+                theCanvas.Width = bitmap.Width;
+                InkCanvas.SetLeft(myThumb, bitmap.Width - myThumb.Width);
+                InkCanvas.SetTop(myThumb, bitmap.Height - myThumb.Height);
             }
 
         }
@@ -433,8 +432,8 @@ namespace MagiCarver
             ToggleLowEng.IsChecked = false;
             ToggleHighEng.IsChecked = false;
             DoneEditingButton.IsEnabled = !isWorking;
-            menuItemCarve.IsEnabled = CanOperate && !isWorking;
-            menuItemAddSeam.IsEnabled = CanOperate && !isWorking;
+            menuItemCarve.IsEnabled = CarveButton.IsEnabled = CanOperate && !isWorking;
+            menuItemAddSeam.IsEnabled = AddButton.IsEnabled = CanOperate && !isWorking;
 
             if (!isWorking)
             {
@@ -443,5 +442,109 @@ namespace MagiCarver
         }
 
         #endregion
+
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            NumSeamsToCarveOrAdd = (int) e.NewValue;
+        }
+
+        void onDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (CanOperate)
+            {
+                int yChange = (int)e.VerticalChange;
+                int xChange = (int)e.HorizontalChange;
+
+                if (Math.Abs(e.VerticalChange) > Math.Abs(e.HorizontalChange))
+                {
+                    xChange = 0;
+                }
+                else
+                {
+                    yChange = 0;
+                }
+
+                double yadjust = theCanvas.Height + yChange;
+                double xadjust = theCanvas.Width + xChange;
+
+                if ((xadjust >= myThumb.Width) && (yadjust >= myThumb.Height))
+                {
+                    theCanvas.Width = xadjust;
+                    theCanvas.Height = yadjust;
+                    InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) +
+                                            xChange);
+                    InkCanvas.SetTop(myThumb, InkCanvas.GetTop(myThumb) +
+                                            yChange);
+                }
+
+                if (xChange < 0 && xadjust > 0)
+                {
+                    WorkInProgress(true);
+
+                    Thread t1 = new Thread(delegate()
+                    {
+                        SeamImage.Carve(Constants.Direction.VERTICAL, false, (int)(Math.Abs(xChange)));
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+                    });
+
+                    t1.Start();
+
+                    t1.Join();
+                }
+                else if (yChange < 0 && yadjust > 0)
+                {
+                    WorkInProgress(true);
+
+                    Thread t1 = new Thread(delegate()
+                    {
+                        Console.WriteLine("Carving " + yChange);
+                        SeamImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(Math.Abs(yChange)));
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+                    });
+
+                    t1.Start();
+
+                    t1.Join();
+                }
+                else if (xChange > 0)
+                {
+                    WorkInProgress(true);
+
+                    Thread t1 = new Thread(delegate()
+                    {
+                        SeamImage.Add(Constants.Direction.VERTICAL, false, (int)(xChange));
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+                    });
+
+                    t1.Start();
+
+                    t1.Join();
+                }
+                else if (yChange > 0)
+                {
+                    WorkInProgress(true);
+
+                    Thread t1 = new Thread(delegate()
+                    {
+                        SeamImage.Add(Constants.Direction.HORIZONTAL, false, (int)(yChange));
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
+                    });
+
+                    t1.Start();
+
+                    t1.Join();
+                }
+            }
+        }
+
+        void onDragStarted(object sender, DragStartedEventArgs e)
+        {
+            // myThumb.Background = Brushes.Orange;
+        }
+
+        void onDragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            //  myThumb.Background = Brushes.Blue;
+        }
     }
 }
