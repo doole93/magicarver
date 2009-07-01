@@ -128,13 +128,6 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Brush_Green.png" />
-    <Resource Include="Resources\Brush_Yellow.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Done.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Resources\accept.png" />
     <Resource Include="Resources\add.png" />
     <Resource Include="Resources\carve.png" />
