@@ -441,7 +441,7 @@ namespace MagiCarver
             }
         }
 
-        #endregion//a
+        #endregion
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
