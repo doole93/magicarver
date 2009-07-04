@@ -47,7 +47,7 @@
                             <Setter Property="Source" Value="Resources\high_eng.png"/>
                             <Style.Triggers>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Source" Value="Resources\high_eng_dis.png"/>
+                                    <Setter Property="Opacity" Value="0.3"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -61,7 +61,7 @@
                             <Setter Property="Source" Value="Resources\low_eng.png"/>
                             <Style.Triggers>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Source" Value="Resources\low_eng_dis.png"/>
+                                    <Setter Property="Opacity" Value="0.3"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -75,7 +75,7 @@
                             <Setter Property="Source" Value="Resources\accept.png"/>
                             <Style.Triggers>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Source" Value="Resources\accept_dis.png"/>
+                                    <Setter Property="Opacity" Value="0.3"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -93,7 +93,7 @@
                                 <Setter Property="Source" Value="Resources\carve.png"/>
                                 <Style.Triggers>
                                     <Trigger Property="IsEnabled" Value="False">
-                                        <Setter Property="Source" Value="Resources\carve_dis.png"/>
+                                        <Setter Property="Opacity" Value="0.3"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -107,7 +107,7 @@
                                 <Setter Property="Source" Value="Resources\add.png"/>
                                 <Style.Triggers>
                                     <Trigger Property="IsEnabled" Value="False">
-                                        <Setter Property="Source" Value="Resources\add_dis.png"/>
+                                        <Setter Property="Opacity" Value="0.3"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
