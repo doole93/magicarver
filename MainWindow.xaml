@@ -133,7 +133,20 @@
                         <Setter Property="Opacity" Value="0.3"/>
                         <Style.Triggers>
                             <Trigger Property="Thumb.IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="1"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard Duration="0:0:1">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.3" To="1"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard Duration="0:0:1">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
