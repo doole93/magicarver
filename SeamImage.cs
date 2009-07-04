@@ -233,16 +233,18 @@ namespace MagiCarver
         /// <param name="k"></param>
         public void Carve(Constants.Direction direction, bool paintSeam, int k)
         {
+            int factor = Math.Max(k, Constants.VALIDATION_FACTOR);
+
             // Refresh the cache if last operation was enlargement
             if (LastAction == Constants.ActionType.ENLARGE)
             {
-                InvalidateAndRefresh(Constants.Direction.BOTH);
+                InvalidateAndRefresh(direction, factor);
             }
 
             // If we changed direction, refresh the cache
             if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
             {
-                InvalidateAndRefresh(Constants.Direction.BOTH);
+                InvalidateAndRefresh(direction, factor);
             }
 
             // If we ran out of image or cache, refresh it
@@ -254,7 +256,7 @@ namespace MagiCarver
                 }
                 if (VerticalSeams.Count < k)
                 {
-                    InvalidateAndRefresh(direction);
+                    InvalidateAndRefresh(direction, factor);
                 }
             }
             else
@@ -265,7 +267,7 @@ namespace MagiCarver
                 }
                 if (HorizontalSeams.Count < k)
                 {
-                    InvalidateAndRefresh(direction);
+                    InvalidateAndRefresh(direction, factor);
                 }
             }
 
@@ -273,7 +275,7 @@ namespace MagiCarver
 
             if (paintSeam)
             {
-                for (int i = 0; i < k; ++i)
+                for (int i = 0; i < factor; ++i)
                 {
                     OnColorSeam(seams[i].PixelLocations);
                 }
@@ -324,29 +326,38 @@ namespace MagiCarver
         {
             lock (lockObject)
             {
+                int factor = Math.Max(k, Constants.VALIDATION_FACTOR);
+
+                if (direction == Constants.Direction.VERTICAL && factor > ImageSize.Width)
+                {
+                    factor = ImageSize.Width;
+                }
+                else if (direction == Constants.Direction.HORIZONTAL && factor > ImageSize.Height){
+                    factor = ImageSize.Height;
+                }
 
                 if (LastAction == Constants.ActionType.SHIRNK)
                 {
-                    InvalidateAndRefresh(Constants.Direction.BOTH);
+                    InvalidateAndRefresh(direction, factor);
                 }
 
                 if ((direction == Constants.Direction.VERTICAL && LastDirection == Constants.Direction.HORIZONTAL) || (direction == Constants.Direction.HORIZONTAL && LastDirection == Constants.Direction.VERTICAL))
                 {
-                    InvalidateAndRefresh(Constants.Direction.BOTH);
+                    InvalidateAndRefresh(direction, factor);
                 }
 
                 if (direction == Constants.Direction.VERTICAL)
                 {
                     if (VerticalSeams.Count < k)
                     {
-                        InvalidateAndRefresh(direction);
+                        InvalidateAndRefresh(direction, factor);
                     }
                 }
                 else
                 {
                     if (HorizontalSeams.Count < k)
                     {
-                        InvalidateAndRefresh(direction);
+                        InvalidateAndRefresh(direction, factor);
                     }
                 }
 
@@ -354,7 +365,7 @@ namespace MagiCarver
 
                 if (paintSeam)
                 {
-                    for (int i = 0; i < k; ++i)
+                    for (int i = 0; i < factor; ++i)
                     {
                         OnColorSeam(seams[i].PixelLocations);
                     }
@@ -683,7 +694,7 @@ namespace MagiCarver
         /// Resposible for cache rebuild / refresh
         /// </summary>
         /// <param name="direction"></param>
-        private void InvalidateAndRefresh(Constants.Direction direction)
+        private void InvalidateAndRefresh(Constants.Direction direction, int validationFactor)
         {
 
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
@@ -706,7 +717,7 @@ namespace MagiCarver
             }
             
             // Recalculates the index maps and rebuilds the seams
-            CalculateIndexMaps(direction);
+            CalculateIndexMaps(direction, validationFactor);
           
             OldSize = ImageSize;
 
@@ -725,7 +736,7 @@ namespace MagiCarver
         {
             if (Dirty)
             {
-                InvalidateAndRefresh(Constants.Direction.BOTH);
+                InvalidateAndRefresh(Constants.Direction.BOTH, 0);
             }
 
             _energyMapBitmap = new Bitmap(_bitmap.Width, _bitmap.Height, PixelFormat.Format24bppRgb);
@@ -733,14 +744,14 @@ namespace MagiCarver
             BitmapData energyMapBmd = _energyMapBitmap.LockBits(new Rectangle(0, 0, _energyMapBitmap.Width, _energyMapBitmap.Height),
                 ImageLockMode.ReadOnly, _energyMapBitmap.PixelFormat);
 
-            for (int y = 0; y < energyMapBmd.Height; y++)
+            Parallel.For(0, energyMapBmd.Height, delegate(int y)
             {
                 for (int x = 0; x < energyMapBmd.Width; x++)
                 {
                     byte grayValue = (byte)(EnergyFunction.EnergyMap[x, y] < 0 ? 0 : EnergyFunction.EnergyMap[x, y] > 254 ? 254 : EnergyFunction.EnergyMap[x, y]);
                     SetPixel(energyMapBmd, x, y, grayValue, grayValue, grayValue);
                 }
-            }
+            });
 
             _energyMapBitmap.UnlockBits(energyMapBmd);
         }
@@ -803,8 +814,10 @@ namespace MagiCarver
         /// Calculates the index maps
         /// </summary>
         /// <param name="direction"></param>
-        public void CalculateIndexMaps(Constants.Direction direction)
+        public void CalculateIndexMaps(Constants.Direction direction, int validationFactor)
         {
+            int factor = validationFactor <= 0 ? Constants.VALIDATION_FACTOR : validationFactor;
+
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                                                     ImageLockMode.ReadOnly, _bitmap.PixelFormat);            
 
@@ -813,13 +826,13 @@ namespace MagiCarver
 
             if (direction == Constants.Direction.BOTH)
             {
-                for (int i = 0; i < CurrentWidth; ++i)
+                Parallel.For(0, CurrentWidth, i =>
                 {
                     for (int j = 0; j < CurrentHeight; ++j)
                     {
                         HorizontalIndexMap[i, j] = VerticalIndexMap[i, j] = int.MaxValue;
                     }
-                }
+                });
             }else if (direction == Constants.Direction.VERTICAL)
             {
                 Parallel.For(0, CurrentWidth, i =>
@@ -831,23 +844,23 @@ namespace MagiCarver
                 });
             }else
             {
-                for (int i = 0; i < CurrentWidth; ++i)
+                Parallel.For(0, CurrentWidth, i =>
                 {
                     for (int j = 0; j < CurrentHeight; ++j)
                     {
                         HorizontalIndexMap[i, j] = int.MaxValue;
                     }
-                }
+                });
             }
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(100, ImageSize.Height));
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(factor, ImageSize.Height));
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(100, ImageSize.Width));
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(factor, ImageSize.Width));
                                               });
 
             if (direction != Constants.Direction.VERTICAL)
@@ -1229,6 +1242,5 @@ namespace MagiCarver
         //}
 
         #endregion
-
     }
 }
