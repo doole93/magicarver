@@ -12,6 +12,8 @@ using Microsoft.Win32;
 using MagiCarver.EnergyFunctions;
 using Size=System.Drawing.Size;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 
 namespace MagiCarver
 {
@@ -41,9 +43,11 @@ namespace MagiCarver
         {
             InitializeComponent();
 
-            Direction = Constants.Direction.OPTIMAL;
+            Direction = Constants.Direction.VERTICAL;
             PaintSeam = false;
             NumSeamsToCarveOrAdd = 20;
+
+            FadeControl(this, true);
         }
 
         #endregion
@@ -100,6 +104,7 @@ namespace MagiCarver
                            {
                                SetImageSource(bitmap, openFile.SafeFileName);
                                WorkInProgress(false);
+                               myThumb.Visibility = Visibility.Visible;
                            }else
                            {
                                Title = Constants.TEXT_READY;
@@ -199,7 +204,25 @@ namespace MagiCarver
 
             Thread t1 = new Thread(delegate() {
                 SeamImage.Carve(Direction, PaintSeam, NumSeamsToCarveOrAdd);
-                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate { WorkInProgress(false); SizeChanged += Window_DummySizeChanged; }));
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate {
+                    WorkInProgress(false);
+                    SizeChanged += Window_DummySizeChanged;
+
+                    if (Direction == Constants.Direction.VERTICAL)
+                    {
+
+
+                        InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) -
+                                                    NumSeamsToCarveOrAdd);
+                        theCanvas.Width -= NumSeamsToCarveOrAdd;
+                    }
+                    else
+                    {
+                        InkCanvas.SetTop(myThumb, InkCanvas.GetTop(myThumb) -
+                                                NumSeamsToCarveOrAdd);
+                        theCanvas.Height -= NumSeamsToCarveOrAdd;
+                    }
+                }));
             });
 
             t1.Start();
@@ -252,7 +275,22 @@ namespace MagiCarver
             Thread t1 = new Thread(delegate()
             {
                 SeamImage.Add(Direction, PaintSeam, NumSeamsToCarveOrAdd);
-                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate { WorkInProgress(false); SizeChanged += Window_DummySizeChanged; }));
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate {
+                    WorkInProgress(false);
+                    SizeChanged += Window_DummySizeChanged;
+
+                    if (Direction == Constants.Direction.VERTICAL)
+                    {
+                        InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) + NumSeamsToCarveOrAdd);
+                        theCanvas.Width += NumSeamsToCarveOrAdd;
+                    }
+                    else
+                    {
+                        InkCanvas.SetTop(myThumb, InkCanvas.GetTop(myThumb) +
+                                                NumSeamsToCarveOrAdd);
+                        theCanvas.Height += NumSeamsToCarveOrAdd;
+                    }
+                }));
             });
 
             t1.Start();
@@ -368,7 +406,7 @@ namespace MagiCarver
             if (MessageBox.Show("Are you sure?", "Finished Editing", MessageBoxButton.YesNo, MessageBoxImage.Question,
                             MessageBoxResult.No) == MessageBoxResult.Yes)
             {
-                //theCanvas.EditingMode = InkCanvasEditingMode.None;
+                theCanvas.EditingMode = InkCanvasEditingMode.None;
 
                 WorkInProgress(true);
 
@@ -381,7 +419,7 @@ namespace MagiCarver
                    SeamImage.RecomputeBase();
                    SeamImage.SetEnergy(strokes);
                    SeamImage.RecomputeEntireMap();
-                   SeamImage.CalculateIndexMaps(Constants.Direction.BOTH);
+                   SeamImage.CalculateIndexMaps(Constants.Direction.BOTH, 0);
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
                    {
                        WorkInProgress(false);
@@ -394,61 +432,12 @@ namespace MagiCarver
             }
         }
 
-        #endregion
-
-        #region Other Methods
-
-        private void SetImageSource(Bitmap bitmap, string bitmapName)
-        {
-            theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),IntPtr.Zero,
-                Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(bitmap.Width, bitmap.Height));
-
-            Size size = SeamImage.ImageSize;
-
-            txtResolution.Text = size.Width + " x " + size.Height;
-            if (bitmapName != null)
-            {
-                Title = Constants.TITLE + " - " + bitmapName;
-                //Width = bitmap.Width;
-                //Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
-                theCanvas.Height = bitmap.Height;
-                theCanvas.Width = bitmap.Width;
-                InkCanvas.SetLeft(myThumb, bitmap.Width - myThumb.Width);
-                InkCanvas.SetTop(myThumb, bitmap.Height - myThumb.Height);
-            }
-
-        }
-
-        private void WorkInProgress(bool isWorking)
-        {
-            txtStatus.Text = isWorking ? Constants.TEXT_WORKING : Constants.TEXT_READY;
-            theCanvas.IsEnabled = !isWorking;
-            menuItemEnergyMap.IsEnabled = !isWorking;
-            menuItemNormal.IsEnabled = !isWorking;
-            menuItemNormal.IsChecked = !isWorking;
-            menuItemSaveImage.IsEnabled = !isWorking;
-            ToggleHighEng.IsEnabled = !isWorking;
-            ToggleLowEng.IsEnabled = !isWorking;
-            ToggleLowEng.IsChecked = false;
-            ToggleHighEng.IsChecked = false;
-            DoneEditingButton.IsEnabled = !isWorking;
-            menuItemCarve.IsEnabled = CarveButton.IsEnabled = CanOperate && !isWorking;
-            menuItemAddSeam.IsEnabled = AddButton.IsEnabled = CanOperate && !isWorking;
-
-            if (!isWorking)
-            {
-                theCanvas.Strokes.Clear();
-            }
-        }
-
-        #endregion
-
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            NumSeamsToCarveOrAdd = (int) e.NewValue;
+            NumSeamsToCarveOrAdd = (int)e.NewValue;
         }
 
-        void onDragDelta(object sender, DragDeltaEventArgs e)
+        private void onDragDelta(object sender, DragDeltaEventArgs e)
         {
             if (CanOperate)
             {
@@ -497,7 +486,6 @@ namespace MagiCarver
 
                     Thread t1 = new Thread(delegate()
                     {
-                        Console.WriteLine("Carving " + yChange);
                         SeamImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(Math.Abs(yChange)));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
@@ -537,14 +525,81 @@ namespace MagiCarver
             }
         }
 
-        void onDragStarted(object sender, DragStartedEventArgs e)
+        private void onDragStarted(object sender, DragStartedEventArgs e)
         {
             // myThumb.Background = Brushes.Orange;
         }
 
-        void onDragCompleted(object sender, DragCompletedEventArgs e)
+        private void onDragCompleted(object sender, DragCompletedEventArgs e)
         {
             //  myThumb.Background = Brushes.Blue;
         }
+
+        #endregion
+
+        #region Other Methods
+
+        private void SetImageSource(Bitmap bitmap, string bitmapName)
+        {
+            theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),IntPtr.Zero,
+                Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(bitmap.Width, bitmap.Height));
+
+            Size size = SeamImage.ImageSize;
+
+            txtResolution.Text = size.Width + " x " + size.Height;
+            if (bitmapName != null)
+            {
+                Title = Constants.TITLE + " - " + bitmapName;
+                //Width = bitmap.Width;
+                //Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
+                theCanvas.Height = bitmap.Height;
+                theCanvas.Width = bitmap.Width;
+                InkCanvas.SetLeft(myThumb, bitmap.Width - myThumb.Width);
+                InkCanvas.SetTop(myThumb, bitmap.Height - myThumb.Height);
+            }
+
+        }
+
+        private void WorkInProgress(bool isWorking)
+        {
+            txtStatus.Text = isWorking ? Constants.TEXT_WORKING : Constants.TEXT_READY;
+            theCanvas.IsEnabled = !isWorking;
+            menuItemEnergyMap.IsEnabled = !isWorking;
+            menuItemNormal.IsEnabled = !isWorking;
+            menuItemSaveImage.IsEnabled = !isWorking;
+            ToggleHighEng.IsEnabled = !isWorking;
+            ToggleLowEng.IsEnabled = !isWorking;
+            ToggleLowEng.IsChecked = false;
+            ToggleHighEng.IsChecked = false;
+            DoneEditingButton.IsEnabled = !isWorking;
+            menuItemCarve.IsEnabled = CarveButton.IsEnabled = CanOperate && !isWorking;
+            menuItemAddSeam.IsEnabled = AddButton.IsEnabled = CanOperate && !isWorking;
+
+            if (!isWorking)
+            {
+                theCanvas.Strokes.Clear();
+            }
+        }
+
+        public void FadeControl(Control a, bool fadeIn)
+        {
+            Storyboard storyboard = new Storyboard();
+            TimeSpan duration = new TimeSpan(0, 0, 1);
+
+            DoubleAnimation animation = new DoubleAnimation();
+
+            animation.From = fadeIn ? 0.0 : 1.0;
+            animation.To = fadeIn ? 1.0 : 0.0;
+            animation.Duration = new Duration(duration);
+
+            Storyboard.SetTargetName(animation, a.Name);
+            Storyboard.SetTargetProperty(animation, new PropertyPath(Control.OpacityProperty));
+
+            storyboard.Children.Add(animation);
+
+            storyboard.Begin(this);
+        }
+
+        #endregion
     }
 }
