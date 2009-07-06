@@ -1,8 +1,13 @@
 ﻿<Window x:Class="MagiCarver.MainWindow" x:Name="main"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:MagiCarver.Converters;assembly="
     SizeToContent="WidthAndHeight" ResizeMode="NoResize"
     Loaded="Window_Loaded">
+    
+    <Window.Resources>
+        <converters:BooleanCanOperateToColorConverter x:Key="BooleanCanOperateToColor" />
+    </Window.Resources>
     
     <Grid>
         <Grid.RowDefinitions>
@@ -38,7 +43,7 @@
                             <Label Content="{Binding ElementName=cacheSlider, Path=Value}"/>
                         </WrapPanel>
                         <Label Grid.Row="1" Content="Real Time"/>
-                        <Slider ValueChanged="cacheSlider_ValueChanged" Value="{Binding ElementName=Main, Path=TheImage.CacheLimit}" Grid.Row="2" IsEnabled="False" IsSnapToTickEnabled="True" x:Name="cacheSlider" MinHeight="100" Orientation="Vertical" IsDirectionReversed="True" Minimum="0" AutoToolTipPlacement="BottomRight" TickPlacement="TopLeft"/>
+                        <Slider ValueChanged="cacheSlider_ValueChanged" Value="{Binding ElementName=main, Path=TheImage.CacheLimit}" Grid.Row="2" IsEnabled="False" IsSnapToTickEnabled="True" x:Name="cacheSlider" MinHeight="100" Orientation="Vertical" IsDirectionReversed="True" Minimum="0" AutoToolTipPlacement="BottomRight" TickPlacement="TopLeft"/>
                         <Label Grid.Row="3" Content="{Binding ElementName=cacheSlider, Path=Maximum}"/>
                         <Button Grid.Row="4" x:Name="BtnCacheApply" IsEnabled="False" Content="Apply" Click="CacheLimitButton_Clicked"/>
                     </Grid>
@@ -143,12 +148,31 @@
                     </ContextMenu>
                 </InkCanvas.ContextMenu>
                 <Image x:Name="theImage"/>
-            <Thumb Name="myThumb" InkCanvas.Left="80" InkCanvas.Top="80"
-                   Width="20" Height="20" DragDelta="onDragDelta" 
-                   DragStarted="onDragStarted" DragCompleted="onDragCompleted" Visibility="Hidden">
+            <Thumb Name="myThumb" InkCanvas.Left="85" InkCanvas.Top="85" Loaded="myThumb_Loaded"
+                   Width="15" Height="15" DragDelta="onDragDelta" 
+                   DragStarted="onDragStarted" DragCompleted="onDragCompleted" Visibility="Hidden" SizeChanged="myThumb_SizeChanged" Background="{Binding ElementName=main, Path=CanOperate, Converter={StaticResource BooleanCanOperateToColor}}">
+                <Thumb.Triggers>
+                    <EventTrigger RoutedEvent="Thumb.MouseEnter">
+                        <EventTrigger.Actions>
+                            <BeginStoryboard>
+                                <Storyboard Duration="0:0:1">
+                                    <ColorAnimation Storyboard.TargetProperty="(Background).(SolidColorBrush.Color)" To="LawnGreen"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger.Actions>
+                    </EventTrigger>
+                    <EventTrigger RoutedEvent="Thumb.MouseLeave">
+                        <EventTrigger.Actions>
+                            <BeginStoryboard>
+                                <Storyboard Duration="0:0:1">
+                                    <ColorAnimation Storyboard.TargetProperty="(Background).(SolidColorBrush.Color)" To="Yellow"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger.Actions>
+                    </EventTrigger>
+                </Thumb.Triggers>
                 <Thumb.Style>
                     <Style TargetType="Thumb">
-                        <Setter Property="Background" Value="RoyalBlue"/>
                         <Setter Property="Opacity" Value="0.3"/>
                         <Style.Triggers>
                             <Trigger Property="Thumb.IsMouseOver" Value="True">
@@ -156,6 +180,8 @@
                                     <BeginStoryboard>
                                         <Storyboard Duration="0:0:1">
                                             <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.3" To="1"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="Width" From="15" To="30"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="Height" From="15" To="30"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
@@ -163,6 +189,8 @@
                                     <BeginStoryboard>
                                         <Storyboard Duration="0:0:1">
                                             <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="Width" From="30" To="15"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="Height" From="30" To="15"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>

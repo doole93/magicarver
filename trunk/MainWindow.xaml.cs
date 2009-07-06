@@ -19,11 +19,15 @@ namespace MagiCarver
 {
     public partial class MainWindow
     {
+        EventTrigger[] arr = new EventTrigger[2];
+
         #region Delegates
 
         private delegate void VoidDelegate();
 
         #endregion
+
+        public DependencyProperty CanOperateProperty;
 
         #region Properties
 
@@ -32,7 +36,12 @@ namespace MagiCarver
         private bool                PaintSeam { get; set; }
         private Constants.Direction Direction { get; set; }
         private DrawingAttributes   Highlighter { get; set; }
-        private bool                CanOperate { get; set; }
+        private bool m_canOperate;
+        public bool CanOperate
+        {
+            get { return (bool)GetValue(CanOperateProperty); }
+            set { SetValue(CanOperateProperty, value); }
+        }
         private int NumSeamsToCarveOrAdd { get; set; }
 
         #endregion
@@ -41,6 +50,11 @@ namespace MagiCarver
 
         public MainWindow()
         {
+            CanOperateProperty = DependencyProperty.Register("CanOperate",
+      typeof(bool), typeof(MainWindow),
+      new FrameworkPropertyMetadata(false,
+      new PropertyChangedCallback(OnCanOperateChanged)));
+
             InitializeComponent();
 
             Direction = Constants.Direction.VERTICAL;
@@ -50,7 +64,12 @@ namespace MagiCarver
             FadeControl(this, true);
         }
 
+
+
         #endregion
+
+private static void OnCanOperateChanged(
+   DependencyObject o, DependencyPropertyChangedEventArgs e) {}
 
         #region Event Handlers
 
@@ -90,7 +109,9 @@ namespace MagiCarver
                    {
                        TheImage = new SeamImage(bitmap, new Sobel());
 
-                       CanOperate = false;
+
+                       Dispatcher.Invoke((VoidDelegate)delegate() { CanOperate = false; }, null);
+                       
                        
 
                        TheImage.ImageChanged += m_SeamImage_ImageChanged;
@@ -106,6 +127,8 @@ namespace MagiCarver
                                WorkInProgress(false);
                                myThumb.Visibility = Visibility.Visible;
                                SetCacheSlider();
+                               myThumb.Triggers.CopyTo(arr, 0);
+                               myThumb.Triggers.Clear();
                            }else
                            {
                                Title = Constants.TEXT_READY;
@@ -409,6 +432,8 @@ namespace MagiCarver
             if (MessageBox.Show("Are you sure?", "Finished Editing", MessageBoxButton.YesNo, MessageBoxImage.Question,
                             MessageBoxResult.No) == MessageBoxResult.Yes)
             {
+                myThumb.Triggers.Add(arr[0]);
+                myThumb.Triggers.Add(arr[1]);
                 RecomputeData();
             }
         }
@@ -449,6 +474,9 @@ namespace MagiCarver
         {
             if (CanOperate)
             {
+                myThumb.Tag = true;
+
+
                 int yChange = (int)e.VerticalChange;
                 int xChange = (int)e.HorizontalChange;
 
@@ -632,6 +660,24 @@ namespace MagiCarver
                 BtnCacheApply.IsEnabled = false;
                 RecomputeData();
             }
+        }
+
+        private void myThumb_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged)
+            {
+                InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) - (e.NewSize.Width - e.PreviousSize.Width));
+            }
+
+            if (e.HeightChanged)
+            {
+                InkCanvas.SetTop(myThumb, InkCanvas.GetTop(myThumb) - (e.NewSize.Height - e.PreviousSize.Height));
+            }
+        }
+
+        private void myThumb_Loaded(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
