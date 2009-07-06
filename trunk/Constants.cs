@@ -17,7 +17,7 @@
         public const double PERCANTAGE_OF_SCREEN_WIDTH = 1;
         public const int MAX_ENERGY = 10000;
         public const int MIN_ENERGY = -10000;
-        public const int VALIDATION_FACTOR = 100;
+        public const int DEFAULT_CACHELIMIT = 50;
 
         #endregion
 

@@ -27,7 +27,7 @@ namespace MagiCarver
 
         #region Properties
 
-        private SeamImage           SeamImage { get; set; }
+        private SeamImage           TheImage { get; set; }
         private Constants.Maps      CurrentViewBitmap { get; set; }
         private bool                PaintSeam { get; set; }
         private Constants.Direction Direction { get; set; }
@@ -88,14 +88,14 @@ namespace MagiCarver
 
                    if (bitmap != null)
                    {
-                       SeamImage = new SeamImage(bitmap, new Sobel());
+                       TheImage = new SeamImage(bitmap, new Sobel());
 
                        CanOperate = false;
                        
 
-                       SeamImage.ImageChanged += m_SeamImage_ImageChanged;
-                       SeamImage.OperationCompleted += m_SeamImage_OperationCompleted;
-                       SeamImage.ColorSeam += m_SeamImage_ColorSeam;
+                       TheImage.ImageChanged += m_SeamImage_ImageChanged;
+                       TheImage.OperationCompleted += m_SeamImage_OperationCompleted;
+                       TheImage.ColorSeam += m_SeamImage_ColorSeam;
                    }
                    
                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
@@ -105,6 +105,7 @@ namespace MagiCarver
                                SetImageSource(bitmap, openFile.SafeFileName);
                                WorkInProgress(false);
                                myThumb.Visibility = Visibility.Visible;
+                               SetCacheSlider();
                            }else
                            {
                                Title = Constants.TEXT_READY;
@@ -142,10 +143,12 @@ namespace MagiCarver
                             switch (CurrentViewBitmap)
                             {
                                 case Constants.Maps.ENERGY:
-                                    bitmap = SeamImage.EnergyMapBitmap;
+                                    bitmap = TheImage.EnergyMapBitmap;
+                                    SetCacheSlider();
                                     break;
                                 case Constants.Maps.NORMAL:
-                                    bitmap = SeamImage.Bitmap;
+                                    bitmap = TheImage.Bitmap;
+                                    SetCacheSlider();
                                     break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
@@ -203,7 +206,7 @@ namespace MagiCarver
             WorkInProgress(true);
 
             Thread t1 = new Thread(delegate() {
-                SeamImage.Carve(Direction, PaintSeam, NumSeamsToCarveOrAdd);
+                TheImage.Carve(Direction, PaintSeam, NumSeamsToCarveOrAdd);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate {
                     WorkInProgress(false);
                     SizeChanged += Window_DummySizeChanged;
@@ -274,7 +277,7 @@ namespace MagiCarver
 
             Thread t1 = new Thread(delegate()
             {
-                SeamImage.Add(Direction, PaintSeam, NumSeamsToCarveOrAdd);
+                TheImage.Add(Direction, PaintSeam, NumSeamsToCarveOrAdd);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate {
                     WorkInProgress(false);
                     SizeChanged += Window_DummySizeChanged;
@@ -406,30 +409,35 @@ namespace MagiCarver
             if (MessageBox.Show("Are you sure?", "Finished Editing", MessageBoxButton.YesNo, MessageBoxImage.Question,
                             MessageBoxResult.No) == MessageBoxResult.Yes)
             {
-                theCanvas.EditingMode = InkCanvasEditingMode.None;
-
-                WorkInProgress(true);
-
-                CanOperate = true;
-
-                StrokeCollection strokes = theCanvas.Strokes.Clone();
-
-                Thread t1 = new Thread(delegate()
-                {
-                   SeamImage.RecomputeBase();
-                   SeamImage.SetEnergy(strokes);
-                   SeamImage.RecomputeEntireMap();
-                   SeamImage.CalculateIndexMaps(Constants.Direction.BOTH, 0);
-                   Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
-                   {
-                       WorkInProgress(false);
-                   }));
-
-
-               });
-
-                t1.Start();
+                RecomputeData();
             }
+        }
+
+        private void RecomputeData()
+        {
+            theCanvas.EditingMode = InkCanvasEditingMode.None;
+
+            WorkInProgress(true);
+
+            CanOperate = true;
+
+            StrokeCollection strokes = theCanvas.Strokes.Clone();
+
+            Thread t1 = new Thread(delegate()
+            {
+                TheImage.RecomputeBase();
+                TheImage.SetEnergy(strokes);
+                TheImage.RecomputeEntireMap();
+                TheImage.CalculateIndexMaps(Constants.Direction.BOTH, 0);
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
+                {
+                    WorkInProgress(false);
+                }));
+
+
+            });
+
+            t1.Start();
         }
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -472,7 +480,7 @@ namespace MagiCarver
 
                     Thread t1 = new Thread(delegate()
                     {
-                        SeamImage.Carve(Constants.Direction.VERTICAL, false, (int)(Math.Abs(xChange)));
+                        TheImage.Carve(Constants.Direction.VERTICAL, false, (int)(Math.Abs(xChange)));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -486,7 +494,7 @@ namespace MagiCarver
 
                     Thread t1 = new Thread(delegate()
                     {
-                        SeamImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(Math.Abs(yChange)));
+                        TheImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(Math.Abs(yChange)));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -500,7 +508,7 @@ namespace MagiCarver
 
                     Thread t1 = new Thread(delegate()
                     {
-                        SeamImage.Add(Constants.Direction.VERTICAL, false, (int)(xChange));
+                        TheImage.Add(Constants.Direction.VERTICAL, false, (int)(xChange));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -514,7 +522,7 @@ namespace MagiCarver
 
                     Thread t1 = new Thread(delegate()
                     {
-                        SeamImage.Add(Constants.Direction.HORIZONTAL, false, (int)(yChange));
+                        TheImage.Add(Constants.Direction.HORIZONTAL, false, (int)(yChange));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -544,7 +552,7 @@ namespace MagiCarver
             theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),IntPtr.Zero,
                 Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(bitmap.Width, bitmap.Height));
 
-            Size size = SeamImage.ImageSize;
+            Size size = TheImage.ImageSize;
 
             txtResolution.Text = size.Width + " x " + size.Height;
             if (bitmapName != null)
@@ -601,5 +609,29 @@ namespace MagiCarver
         }
 
         #endregion
+
+        private void SetCacheSlider()
+        {
+            cacheSlider.Maximum = Math.Min(TheImage.ImageSize.Width, TheImage.ImageSize.Height);
+            cacheSlider.TickFrequency = (int)(0.05 * cacheSlider.Maximum);
+            cacheSlider.IsEnabled = TheImage != null;
+            cacheSlider.Value = TheImage.CacheLimit;
+        }
+
+        private void cacheSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            BtnCacheApply.IsEnabled = true;
+        }
+
+        private void CacheLimitButton_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Cache recalculation will be needed. Proceed?", "Set Cache Limit", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                MessageBoxResult.No) == MessageBoxResult.Yes)
+            {
+                TheImage.SetCacheLimit((int)cacheSlider.Value);
+                BtnCacheApply.IsEnabled = false;
+                RecomputeData();
+            }
+        }
     }
 }

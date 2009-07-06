@@ -52,6 +52,8 @@ namespace MagiCarver
         // Number of removed / added seams
         private int RemovedSeams { get; set; }
         private int AddedSeams { get; set; }
+
+        public int CacheLimit { get; private set; }
         
         // Indicates whether operation has been taken after the caches were refreshed
         private bool Dirty {
@@ -129,6 +131,8 @@ namespace MagiCarver
             LastAction = Constants.ActionType.NONE;
 
             RecomputeEntireEnergy();
+
+            CacheLimit = Math.Min(Constants.DEFAULT_CACHELIMIT, Math.Min(CurrentHeight, CurrentWidth));
         }
 
         #endregion
@@ -233,7 +237,7 @@ namespace MagiCarver
         /// <param name="k"></param>
         public void Carve(Constants.Direction direction, bool paintSeam, int k)
         {
-            int factor = Math.Max(k, Constants.VALIDATION_FACTOR);
+            int factor = k > CacheLimit ? k : CacheLimit;
 
             // Refresh the cache if last operation was enlargement
             if (LastAction == Constants.ActionType.ENLARGE)
@@ -326,7 +330,7 @@ namespace MagiCarver
         {
             lock (lockObject)
             {
-                int factor = Math.Max(k, Constants.VALIDATION_FACTOR);
+                int factor = k > CacheLimit ? k : CacheLimit;
 
                 if (direction == Constants.Direction.VERTICAL && factor > ImageSize.Width)
                 {
@@ -816,7 +820,7 @@ namespace MagiCarver
         /// <param name="direction"></param>
         public void CalculateIndexMaps(Constants.Direction direction, int validationFactor)
         {
-            int factor = validationFactor <= 0 ? Constants.VALIDATION_FACTOR : validationFactor;
+            int factor = validationFactor <= 0 ? CacheLimit : validationFactor;
 
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                                                     ImageLockMode.ReadOnly, _bitmap.PixelFormat);            
@@ -1242,5 +1246,10 @@ namespace MagiCarver
         //}
 
         #endregion
+
+        public void SetCacheLimit(int newLimit)
+        {
+            CacheLimit = newLimit;
+        }
     }
 }
