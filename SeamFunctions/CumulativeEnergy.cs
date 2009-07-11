@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MagiCarver.EnergyFunctions;
 using System.Drawing;
+using System.Threading;
 
 namespace MagiCarver.SeamFunctions
 {
@@ -61,16 +62,16 @@ namespace MagiCarver.SeamFunctions
             // Copy the top / left row / column of energy to start with.
             if (direction == Constants.Direction.VERTICAL)
             {
-                for (int i = 0; i < size.Width; ++i)
+                Parallel.For(0, size.Width, delegate(int i)
                 {
                     VerticalCumulativeEnergyMap[i, 0] = EnergyFunction.EnergyMap[i, 0];
-                }
+                });
             }else
             {
-                for (int i = 0; i < size.Height; ++i)
+                Parallel.For(0, size.Height, delegate(int i)
                 {
                     HorizontalCumulativeEnergyMap[0, i] = EnergyFunction.EnergyMap[0, i];
-                }
+                });
             }
 
             // Finding the best neighbour on the way up / right, choosing it.

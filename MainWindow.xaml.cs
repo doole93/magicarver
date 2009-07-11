@@ -13,21 +13,23 @@ using MagiCarver.EnergyFunctions;
 using Size=System.Drawing.Size;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
 
 namespace MagiCarver
 {
     public partial class MainWindow
     {
-        EventTrigger[] arr = new EventTrigger[2];
+
+        #region Data Members
+
+        private readonly EventTrigger[]  DragToolTriggers = new EventTrigger[2];
+
+        #endregion
 
         #region Delegates
 
         private delegate void VoidDelegate();
 
         #endregion
-
-        public DependencyProperty CanOperateProperty;
 
         #region Properties
 
@@ -36,13 +38,20 @@ namespace MagiCarver
         private bool                PaintSeam { get; set; }
         private Constants.Direction Direction { get; set; }
         private DrawingAttributes   Highlighter { get; set; }
-        private bool m_canOperate;
+        public  DependencyProperty  CanOperateProperty;
+        private int                 NumSeamsToCarveOrAdd { get; set; }
+
         public bool CanOperate
         {
-            get { return (bool)GetValue(CanOperateProperty); }
-            set { SetValue(CanOperateProperty, value); }
+            get 
+            { 
+                return (bool)GetValue(CanOperateProperty); 
+            }
+            set 
+            {
+                SetValue(CanOperateProperty, value); 
+            }
         }
-        private int NumSeamsToCarveOrAdd { get; set; }
 
         #endregion
 
@@ -51,9 +60,9 @@ namespace MagiCarver
         public MainWindow()
         {
             CanOperateProperty = DependencyProperty.Register("CanOperate",
-      typeof(bool), typeof(MainWindow),
-      new FrameworkPropertyMetadata(false,
-      new PropertyChangedCallback(OnCanOperateChanged)));
+                typeof(bool), typeof(MainWindow),
+                new FrameworkPropertyMetadata(false,
+                new PropertyChangedCallback(OnCanOperateChanged)));
 
             InitializeComponent();
 
@@ -64,20 +73,47 @@ namespace MagiCarver
             FadeControl(this, true);
         }
 
-
-
         #endregion
-
-private static void OnCanOperateChanged(
-   DependencyObject o, DependencyPropertyChangedEventArgs e) {}
 
         #region Event Handlers
 
+        private void cacheSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            BtnCacheApply.IsEnabled = true;
+        }
+
+        private void CacheLimitButton_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Cache recalculation will be needed. Proceed?", "Set Cache Limit", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                MessageBoxResult.No) == MessageBoxResult.Yes)
+            {
+                TheImage.SetCacheLimit((int)cacheSlider.Value);
+                BtnCacheApply.IsEnabled = false;
+                RecomputeData();
+                myThumb.Triggers.Add(DragToolTriggers[0]);
+                myThumb.Triggers.Add(DragToolTriggers[1]);
+            }
+        }
+
+        private void myThumb_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged)
+            {
+                InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) - (e.NewSize.Width - e.PreviousSize.Width));
+            }
+
+            if (e.HeightChanged)
+            {
+                InkCanvas.SetTop(myThumb, InkCanvas.GetTop(myThumb) - (e.NewSize.Height - e.PreviousSize.Height));
+            }
+        }
+
+        private static void OnCanOperateChanged(DependencyObject o, DependencyPropertyChangedEventArgs e) 
+        { 
+        }
+
         private void OpenFile_Clicked(object sender, RoutedEventArgs e)
         {
-            SizeChanged -= Window_SizeChanged;
-            SizeChanged -= Window_DummySizeChanged;
-
             menuItemEnergyMap.IsChecked = false;
             menuItemNormal.IsChecked = true;
             CurrentViewBitmap = Constants.Maps.NORMAL;
@@ -107,10 +143,10 @@ private static void OnCanOperateChanged(
 
                    if (bitmap != null)
                    {
-                       TheImage = new SeamImage(bitmap, new Sobel());
+                       TheImage = new SeamImage(bitmap, new Prewitt());
 
 
-                       Dispatcher.Invoke((VoidDelegate)delegate() { CanOperate = false; }, null);
+                       Dispatcher.Invoke((VoidDelegate)delegate { CanOperate = false; }, null);
                        
                        
 
@@ -127,7 +163,7 @@ private static void OnCanOperateChanged(
                                WorkInProgress(false);
                                myThumb.Visibility = Visibility.Visible;
                                SetCacheSlider();
-                               myThumb.Triggers.CopyTo(arr, 0);
+                               myThumb.Triggers.CopyTo(DragToolTriggers, 0);
                                myThumb.Triggers.Clear();
                            }else
                            {
@@ -224,15 +260,12 @@ private static void OnCanOperateChanged(
 
         private void Carve_Clicked(object sender, RoutedEventArgs e)
         {
-            SizeChanged -= Window_SizeChanged;
-
             WorkInProgress(true);
 
             Thread t1 = new Thread(delegate() {
                 TheImage.Carve(Direction, PaintSeam, NumSeamsToCarveOrAdd);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate {
                     WorkInProgress(false);
-                    SizeChanged += Window_DummySizeChanged;
 
                     if (Direction == Constants.Direction.VERTICAL)
                     {
@@ -294,8 +327,6 @@ private static void OnCanOperateChanged(
 
         private void AddSeam_Clicked(object sender, RoutedEventArgs e)
         {
-            SizeChanged -= Window_SizeChanged;
-
             WorkInProgress(true);
 
             Thread t1 = new Thread(delegate()
@@ -303,7 +334,6 @@ private static void OnCanOperateChanged(
                 TheImage.Add(Direction, PaintSeam, NumSeamsToCarveOrAdd);
                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate {
                     WorkInProgress(false);
-                    SizeChanged += Window_DummySizeChanged;
 
                     if (Direction == Constants.Direction.VERTICAL)
                     {
@@ -322,82 +352,12 @@ private static void OnCanOperateChanged(
             t1.Start();
         }
 
-        private void Window_DummySizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            SizeChanged -= Window_DummySizeChanged;
-            SizeChanged += Window_SizeChanged;
-        }
-
         private void RowDefinition_Loaded(object sender, RoutedEventArgs e)
         {
             RowDefinition rowDefinition = ((RowDefinition) sender);
 
             rowDefinition.MaxHeight = rowDefinition.ActualHeight;
             rowDefinition.MinHeight = rowDefinition.ActualHeight;
-        }
-
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            //if (e.WidthChanged && CanOperate && e.PreviousSize.Width > e.NewSize.Width && SeamImage.ImageSize.Width > e.PreviousSize.Width - e.NewSize.Width && (int)(e.PreviousSize.Width - e.NewSize.Width) > 0)
-            //{
-            //    WorkInProgress(true);
-
-            //    Thread t1 = new Thread(delegate()
-            //    {
-            //        SeamImage.Carve(Constants.Direction.VERTICAL, false, (int)(e.PreviousSize.Width - e.NewSize.Width));
-            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-            //    });
-
-            //    t1.Start();
-
-            //    t1.Join();
-            //}
-            //else if (e.HeightChanged && CanOperate && e.PreviousSize.Height > e.NewSize.Height && SeamImage.ImageSize.Height > e.PreviousSize.Height - e.NewSize.Height && (int)(e.PreviousSize.Height - e.NewSize.Height) > 0)
-            //{
-            //    WorkInProgress(true);
-
-            //    Thread t1 = new Thread(delegate()
-            //    {
-            //        SeamImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(e.PreviousSize.Height - e.NewSize.Height));
-            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-            //    });
-
-            //    t1.Start();
-
-            //    t1.Join();
-            //}
-            //else if (e.WidthChanged && CanOperate && e.PreviousSize.Width < e.NewSize.Width && (int)(e.NewSize.Width - e.PreviousSize.Width) > 0)
-            //{
-            //    WorkInProgress(true);
-
-            //    Thread t1 = new Thread(delegate()
-            //    {
-            //        SeamImage.Add(Constants.Direction.VERTICAL, false, (int)(e.NewSize.Width - e.PreviousSize.Width));
-            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-            //    });
-
-            //    t1.Start();
-
-            //    t1.Join();
-            //}
-            //else if (e.HeightChanged && CanOperate && e.PreviousSize.Height < e.NewSize.Height && (int)(e.NewSize.Height - e.PreviousSize.Height) > 0)
-            //{
-            //    WorkInProgress(true);
-
-            //    Thread t1 = new Thread(delegate()
-            //    {
-            //        SeamImage.Add(Constants.Direction.HORIZONTAL, false, (int)(e.NewSize.Height - e.PreviousSize.Height));
-            //        Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
-            //    });
-
-            //    t1.Start();
-
-            //    t1.Join();
-            //}
-            //else
-            //{
-            //    CanOperate = true;
-            //}
         }
 
         private void ToggleBrush_Clicked(object sender, RoutedEventArgs e)
@@ -432,9 +392,9 @@ private static void OnCanOperateChanged(
             if (MessageBox.Show("Are you sure?", "Finished Editing", MessageBoxButton.YesNo, MessageBoxImage.Question,
                             MessageBoxResult.No) == MessageBoxResult.Yes)
             {
-                myThumb.Triggers.Add(arr[0]);
-                myThumb.Triggers.Add(arr[1]);
                 RecomputeData();
+                myThumb.Triggers.Add(DragToolTriggers[0]);
+                myThumb.Triggers.Add(DragToolTriggers[1]);
             }
         }
 
@@ -454,12 +414,7 @@ private static void OnCanOperateChanged(
                 TheImage.SetEnergy(strokes);
                 TheImage.RecomputeEntireMap();
                 TheImage.CalculateIndexMaps(Constants.Direction.BOTH, 0);
-                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(delegate
-                {
-                    WorkInProgress(false);
-                }));
-
-
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
             });
 
             t1.Start();
@@ -508,7 +463,7 @@ private static void OnCanOperateChanged(
 
                     Thread t1 = new Thread(delegate()
                     {
-                        TheImage.Carve(Constants.Direction.VERTICAL, false, (int)(Math.Abs(xChange)));
+                        TheImage.Carve(Constants.Direction.VERTICAL, false, Math.Abs(xChange));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -522,7 +477,7 @@ private static void OnCanOperateChanged(
 
                     Thread t1 = new Thread(delegate()
                     {
-                        TheImage.Carve(Constants.Direction.HORIZONTAL, false, (int)(Math.Abs(yChange)));
+                        TheImage.Carve(Constants.Direction.HORIZONTAL, false, Math.Abs(yChange));
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -536,7 +491,7 @@ private static void OnCanOperateChanged(
 
                     Thread t1 = new Thread(delegate()
                     {
-                        TheImage.Add(Constants.Direction.VERTICAL, false, (int)(xChange));
+                        TheImage.Add(Constants.Direction.VERTICAL, false, xChange);
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -550,7 +505,7 @@ private static void OnCanOperateChanged(
 
                     Thread t1 = new Thread(delegate()
                     {
-                        TheImage.Add(Constants.Direction.HORIZONTAL, false, (int)(yChange));
+                        TheImage.Add(Constants.Direction.HORIZONTAL, false, yChange);
                         Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)(() => WorkInProgress(false)));
                     });
 
@@ -617,19 +572,31 @@ private static void OnCanOperateChanged(
             }
         }
 
+        private void SetCacheSlider()
+        {
+            cacheSlider.Maximum = Math.Min(TheImage.ImageSize.Width, TheImage.ImageSize.Height);
+            cacheSlider.TickFrequency = (int)(0.05 * cacheSlider.Maximum);
+            cacheSlider.IsEnabled = TheImage != null;
+            if (TheImage != null)
+            {
+                cacheSlider.Value = TheImage.CacheLimit;
+            }
+        }
+
         public void FadeControl(Control a, bool fadeIn)
         {
             Storyboard storyboard = new Storyboard();
             TimeSpan duration = new TimeSpan(0, 0, 1);
 
-            DoubleAnimation animation = new DoubleAnimation();
-
-            animation.From = fadeIn ? 0.0 : 1.0;
-            animation.To = fadeIn ? 1.0 : 0.0;
-            animation.Duration = new Duration(duration);
+            DoubleAnimation animation = new DoubleAnimation
+                                            {
+                                                From = fadeIn ? 0.0 : 1.0,
+                                                To = fadeIn ? 1.0 : 0.0,
+                                                Duration = new Duration(duration)
+                                            };
 
             Storyboard.SetTargetName(animation, a.Name);
-            Storyboard.SetTargetProperty(animation, new PropertyPath(Control.OpacityProperty));
+            Storyboard.SetTargetProperty(animation, new PropertyPath(OpacityProperty));
 
             storyboard.Children.Add(animation);
 
@@ -638,46 +605,9 @@ private static void OnCanOperateChanged(
 
         #endregion
 
-        private void SetCacheSlider()
+        private void ChangeEnergyFunc_Clicked(object sender, RoutedEventArgs e)
         {
-            cacheSlider.Maximum = Math.Min(TheImage.ImageSize.Width, TheImage.ImageSize.Height);
-            cacheSlider.TickFrequency = (int)(0.05 * cacheSlider.Maximum);
-            cacheSlider.IsEnabled = TheImage != null;
-            cacheSlider.Value = TheImage.CacheLimit;
-        }
-
-        private void cacheSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            BtnCacheApply.IsEnabled = true;
-        }
-
-        private void CacheLimitButton_Clicked(object sender, RoutedEventArgs e)
-        {
-            if (MessageBox.Show("Cache recalculation will be needed. Proceed?", "Set Cache Limit", MessageBoxButton.YesNo, MessageBoxImage.Question,
-                MessageBoxResult.No) == MessageBoxResult.Yes)
-            {
-                TheImage.SetCacheLimit((int)cacheSlider.Value);
-                BtnCacheApply.IsEnabled = false;
-                RecomputeData();
-            }
-        }
-
-        private void myThumb_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            if (e.WidthChanged)
-            {
-                InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) - (e.NewSize.Width - e.PreviousSize.Width));
-            }
-
-            if (e.HeightChanged)
-            {
-                InkCanvas.SetTop(myThumb, InkCanvas.GetTop(myThumb) - (e.NewSize.Height - e.PreviousSize.Height));
-            }
-        }
-
-        private void myThumb_Loaded(object sender, RoutedEventArgs e)
-        {
-
+            throw new NotImplementedException();
         }
     }
 }

@@ -6,7 +6,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{20B9D49E-D57C-45EE-8123-16B6C2715F56}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MagiCarver</RootNamespace>
     <AssemblyName>MagiCarver</AssemblyName>
@@ -36,6 +36,7 @@
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
+    <StartupObject />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -96,6 +97,8 @@
     <Compile Include="Constants.cs" />
     <Compile Include="Converters\BooleanCanOperateToColorConverter.cs" />
     <Compile Include="EnergyFunctions\EnergyFunction.cs" />
+    <Compile Include="EnergyFunctions\Prewitt.cs" />
+    <Compile Include="EnergyFunctions\Roberts.cs" />
     <Compile Include="EnergyFunctions\Sobel.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
