@@ -39,14 +39,30 @@
                             <RowDefinition/>
                         </Grid.RowDefinitions>
                         <WrapPanel>
-                            <Label Content="Current: "/>
-                            <Label Content="{Binding ElementName=cacheSlider, Path=Value}"/>
+                            <Label Content="Current:" />
+                            <Label>
+                                <Label.Style>
+                                    <Style TargetType="Label">
+                                        <Setter Property="Content" Value="{Binding ElementName=cacheSlider, Path=Value}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger  Binding="{Binding ElementName=cacheSlider, Path=Value}" Value="0">
+                                                <Setter Property="Content" Value="Real Time"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Label.Style>
+                            </Label>
                         </WrapPanel>
                         <Label Grid.Row="1" Content="Real Time"/>
                         <Slider ValueChanged="cacheSlider_ValueChanged" Value="{Binding ElementName=main, Path=TheImage.CacheLimit}" Grid.Row="2" IsEnabled="False" IsSnapToTickEnabled="True" x:Name="cacheSlider" MinHeight="100" Orientation="Vertical" IsDirectionReversed="True" Minimum="0" AutoToolTipPlacement="BottomRight" TickPlacement="TopLeft"/>
                         <Label Grid.Row="3" Content="{Binding ElementName=cacheSlider, Path=Maximum}"/>
                         <Button Grid.Row="4" x:Name="BtnCacheApply" IsEnabled="False" Content="Apply" Click="CacheLimitButton_Clicked"/>
                     </Grid>
+                </MenuItem>
+                <MenuItem Header="_Energy Function">
+                    <MenuItem x:Name="menuItemSobelFnc" Header="Sobel" IsCheckable="True" IsChecked="True"  Tag="0" IsEnabled="False" Click="ChangeEnergyFunc_Clicked"/>
+                    <MenuItem x:Name="menuItemRobertsFunc" Header="Roberts" IsCheckable="True" Tag="1" IsEnabled="False" Click="ChangeMapView_Clicked"/>
+                    <MenuItem x:Name="menuItemPrewittFunc" Header="Prewitt" Tag="2" IsCheckable="True" IsEnabled="False" Click="ChangeMapView_Clicked"/>
                 </MenuItem>
                 <MenuItem x:Name="menuItemPaintSeam" Header="_Paint Seam" IsEnabled="False" IsCheckable="True" IsChecked="False" Click="PaintSeam_Clicked"/>
                 <MenuItem x:Name="menuItemCarve" Header="_Carve Seam" FontWeight="bold" IsEnabled="False" Click="Carve_Clicked"/>
@@ -148,7 +164,7 @@
                     </ContextMenu>
                 </InkCanvas.ContextMenu>
                 <Image x:Name="theImage"/>
-            <Thumb Name="myThumb" InkCanvas.Left="85" InkCanvas.Top="85" Loaded="myThumb_Loaded"
+            <Thumb Name="myThumb" InkCanvas.Left="85" InkCanvas.Top="85"
                    Width="15" Height="15" DragDelta="onDragDelta" 
                    DragStarted="onDragStarted" DragCompleted="onDragCompleted" Visibility="Hidden" SizeChanged="myThumb_SizeChanged" Background="{Binding ElementName=main, Path=CanOperate, Converter={StaticResource BooleanCanOperateToColor}}">
                 <Thumb.Triggers>

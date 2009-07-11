@@ -63,7 +63,7 @@ namespace MagiCarver
             } 
         }
 
-        private Object lockObject = new Object();
+        private readonly Object lockObject = new Object();
         
         // History of operations for cache refresh
         private Constants.ActionType LastAction { get; set; }
@@ -698,16 +698,26 @@ namespace MagiCarver
         /// Resposible for cache rebuild / refresh
         /// </summary>
         /// <param name="direction"></param>
+        /// <param name="validationFactor"></param>
         private void InvalidateAndRefresh(Constants.Direction direction, int validationFactor)
         {
 
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                                                    ImageLockMode.ReadOnly, _bitmap.PixelFormat);
 
+
+            DateTime a = DateTime.Now;
+
             // Refreshes the pixel's energy
             EnergyFunction.ComputeLocalEnergy(BitData, OldSize, ImageSize, LastDirection);
-                
+
+            TimeSpan b = DateTime.Now - a;
+
+            Console.WriteLine("Refreshing the energy took " + b.Milliseconds);
+
             _bitmap.UnlockBits(BitData);
+
+            a = DateTime.Now;
 
             // Recomputes the cumulativer energy map
             if (direction == Constants.Direction.BOTH || direction == Constants.Direction.VERTICAL)
@@ -719,10 +729,20 @@ namespace MagiCarver
             {
                 SeamFunction.ComputeEntireEnergyMap(Constants.Direction.HORIZONTAL, ImageSize);
             }
-            
+
+            b = DateTime.Now - a;
+
+            Console.WriteLine("Recalculating the cumulative energy took " + b.Milliseconds);
+
+            a = DateTime.Now;
+
             // Recalculates the index maps and rebuilds the seams
             CalculateIndexMaps(direction, validationFactor);
-          
+
+            b = DateTime.Now - a;
+
+            Console.WriteLine("Recalculating the index maps and rebuild of seams took " + b.Milliseconds);
+
             OldSize = ImageSize;
 
             OldBitmap = null;
@@ -818,6 +838,7 @@ namespace MagiCarver
         /// Calculates the index maps
         /// </summary>
         /// <param name="direction"></param>
+        /// <param name="validationFactor"></param>
         public void CalculateIndexMaps(Constants.Direction direction, int validationFactor)
         {
             int factor = validationFactor <= 0 ? CacheLimit : validationFactor;
