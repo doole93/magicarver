@@ -9,7 +9,8 @@
         <converters:BooleanCanOperateToColorConverter x:Key="BooleanCanOperateToColor" />
     </Window.Resources>
     
-    <Grid>
+   
+    <Grid x:Name="LayoutRoot">
         <Grid.RowDefinitions>
             <RowDefinition Loaded="RowDefinition_Loaded" />
             <RowDefinition Loaded="RowDefinition_Loaded" />
@@ -123,6 +124,35 @@
                 </Image>
             </Button>
             <Separator/>
+            <ToggleButton x:Name="ToggleSelection" ToolTip="Selection Tool" MaxHeight="30" MaxWidth="30" Click="ToggleSelection_Clicked" IsEnabled="False">
+                <Image>
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Source" Value="Resources\selection.png"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.3"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+            </ToggleButton>
+            <Button x:Name="CropSelectionButton" ToolTip="Crop Selection" MaxHeight="30" MaxWidth="30" IsEnabled="False" Click="CropSelection_Clicked">
+                <Image>
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Setter Property="Source" Value="Resources\crop.png"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.3"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+            </Button>
+            <Separator/>
             <WrapPanel Margin="5 0 0 0">
                 <TextBlock Margin="0 5 0 0" Text="Seams: "/>
                 <Slider  ToolTip="Number of Seams to Carve or Add" Margin="0 2 0 0" AutoToolTipPlacement="BottomRight" TickFrequency="5" TickPlacement="BottomRight" Minimum="0" Maximum="50" Value="20" MinWidth="100" MaxWidth="500" ValueChanged="Slider_ValueChanged" IsEnabled="{Binding ElementName=CarveButton, Path=IsEnabled}"/>
@@ -163,7 +193,27 @@
                         <MenuItem Header="Clear Selection" Click="ClearSelection_Click"/>
                     </ContextMenu>
                 </InkCanvas.ContextMenu>
-                <Image x:Name="theImage"/>
+            <Rectangle Fill="#14FFFFFF" StrokeDashArray="5" Stroke="#FFFFFFFF"
+                       Visibility="Hidden" x:Name="rectangle" Width="50" Height="50" 
+                       StrokeDashOffset="0" StrokeThickness="1" RadiusX="0" RadiusY="0"
+                       Canvas.Left="0" Canvas.Top="0">
+                <Rectangle.Triggers>
+                    <EventTrigger RoutedEvent="Loaded">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimationUsingKeyFrames BeginTime="00:00:00" 
+                               Storyboard.TargetName="rectangle" 
+                               Storyboard.TargetProperty="(Shape.StrokeDashOffset)" 
+                               RepeatBehavior="Forever">
+                                    <SplineDoubleKeyFrame KeyTime="00:00:00" Value="0"/>
+                                    <SplineDoubleKeyFrame KeyTime="00:00:00.5000000" Value="10"/>
+                                </DoubleAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Rectangle.Triggers>
+            </Rectangle>
+            <Image x:Name="theImage"/>
             <Thumb Name="myThumb" InkCanvas.Left="85" InkCanvas.Top="85"
                    Width="15" Height="15" DragDelta="onDragDelta" 
                    DragStarted="onDragStarted" DragCompleted="onDragCompleted" Visibility="Hidden" SizeChanged="myThumb_SizeChanged" Background="{Binding ElementName=main, Path=CanOperate, Converter={StaticResource BooleanCanOperateToColor}}">
