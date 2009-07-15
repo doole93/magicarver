@@ -4,7 +4,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Image=System.Windows.Controls.Image;
+using Rectangle=System.Windows.Shapes.Rectangle;
 
 namespace MagiCarver
 {
@@ -12,7 +12,7 @@ namespace MagiCarver
     {
         #region Other Methods
 
-        public static void ExportToPng(Uri path, Image image)
+        public static void ExportToPng(Uri path, System.Windows.Controls.Image image)
         {
             System.Windows.Size size = new System.Windows.Size(image.RenderSize.Width, image.RenderSize.Height);
 
@@ -29,6 +29,11 @@ namespace MagiCarver
 
                 encoder.Save(outStream);
             }
+        }
+
+        public static Image CropImage(Bitmap bmp, System.Drawing.Rectangle cropArea)
+        {
+            return bmp.Clone(cropArea, bmp.PixelFormat);
         }
 
         public static byte GetPixel(BitmapData bitmapData, Size size, int x, int y)

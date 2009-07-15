@@ -13,11 +13,14 @@ using MagiCarver.EnergyFunctions;
 using Size=System.Drawing.Size;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;
+using Point=System.Windows.Point;
 
 namespace MagiCarver
 {
     public partial class MainWindow
     {
+
+        
 
         #region Data Members
 
@@ -40,6 +43,9 @@ namespace MagiCarver
         private DrawingAttributes   Highlighter { get; set; }
         public  DependencyProperty  CanOperateProperty;
         private int                 NumSeamsToCarveOrAdd { get; set; }
+        private Point               startDrag { get; set; }
+
+        private double x, y;
 
         public bool CanOperate
         {
@@ -128,51 +134,71 @@ namespace MagiCarver
 
             WorkInProgress(true);
 
-            Thread t1 = new Thread(delegate()
-               {
-                   Bitmap bitmap = null;
+            ParameterizedThreadStart starter = LoadFile;
+            new Thread(starter).Start(openFile);
+        }
 
-                   try
-                   {
-                       bitmap = new Bitmap(openFile.FileName); 
-                   }catch (ArgumentException)
-                   {
-                       MessageBox.Show("Invalid file selected. Please select a valid image file.", "Open File Error",
-                                       MessageBoxButton.OK, MessageBoxImage.Error);
-                   }
+        private void LoadFile(object openFile)
+        {
+            Bitmap bitmap = null;
 
-                   if (bitmap != null)
-                   {
-                       TheImage = new SeamImage(bitmap, new Prewitt());
+            if (openFile != null)
+            {
+                try
+                {
+                    if (openFile.GetType() == typeof(OpenFileDialog))
+                    {
+                        bitmap = new Bitmap(((OpenFileDialog) openFile).FileName);
+                    }else
+                    {
+                        bitmap = (Bitmap) openFile;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    MessageBox.Show("Invalid file selected. Please select a valid image file.", "Open File Error",
+                                    MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+
+            if (bitmap != null)
+            {
+                TheImage = new SeamImage(bitmap, new Prewitt());
 
 
-                       Dispatcher.Invoke((VoidDelegate)delegate { CanOperate = false; }, null);
-                       
-                       
+                Dispatcher.Invoke((VoidDelegate)delegate { CanOperate = false; }, null);
 
-                       TheImage.ImageChanged += m_SeamImage_ImageChanged;
-                       TheImage.OperationCompleted += m_SeamImage_OperationCompleted;
-                       TheImage.ColorSeam += m_SeamImage_ColorSeam;
-                   }
-                   
-                   Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
-                       {
-                           if (bitmap != null)
-                           {
-                               SetImageSource(bitmap, openFile.SafeFileName);
-                               WorkInProgress(false);
-                               myThumb.Visibility = Visibility.Visible;
-                               SetCacheSlider();
-                               myThumb.Triggers.CopyTo(DragToolTriggers, 0);
-                               myThumb.Triggers.Clear();
-                           }else
-                           {
-                               Title = Constants.TEXT_READY;
-                           }
-                       });
-               });
-            
-            t1.Start();
+                TheImage.ImageChanged += m_SeamImage_ImageChanged;
+                TheImage.OperationCompleted += m_SeamImage_OperationCompleted;
+                TheImage.ColorSeam += m_SeamImage_ColorSeam;
+            }
+
+            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (VoidDelegate)delegate
+            {
+                if (bitmap != null)
+                {
+                    if (openFile != null)
+                    {
+                        if (openFile.GetType() == typeof(OpenFileDialog))
+                        {
+                            SetImageSource(bitmap, ((OpenFileDialog)openFile).SafeFileName);
+                        }else
+                        {
+                            SetImageSource(bitmap, null);
+                        }
+                    }
+
+                    WorkInProgress(false);
+                    myThumb.Visibility = Visibility.Visible;
+                    SetCacheSlider();
+                    myThumb.Triggers.CopyTo(DragToolTriggers, 0);
+                    myThumb.Triggers.Clear();
+                }
+                else
+                {
+                    Title = Constants.TEXT_READY;
+                }
+            });
         }
 
         private void m_SeamImage_ColorSeam(object sender, EventArgs e)
@@ -269,8 +295,6 @@ namespace MagiCarver
 
                     if (Direction == Constants.Direction.VERTICAL)
                     {
-
-
                         InkCanvas.SetLeft(myThumb, InkCanvas.GetLeft(myThumb) -
                                                     NumSeamsToCarveOrAdd);
                         theCanvas.Width -= NumSeamsToCarveOrAdd;
@@ -431,7 +455,6 @@ namespace MagiCarver
             {
                 myThumb.Tag = true;
 
-
                 int yChange = (int)e.VerticalChange;
                 int xChange = (int)e.HorizontalChange;
 
@@ -562,7 +585,10 @@ namespace MagiCarver
             ToggleLowEng.IsEnabled = !isWorking;
             ToggleLowEng.IsChecked = false;
             ToggleHighEng.IsChecked = false;
+            ToggleSelection.IsChecked = false;
+            ToggleSelection.IsEnabled = !isWorking;
             DoneEditingButton.IsEnabled = !isWorking;
+            CropSelectionButton.IsEnabled = !isWorking;
             menuItemCarve.IsEnabled = CarveButton.IsEnabled = CanOperate && !isWorking;
             menuItemAddSeam.IsEnabled = AddButton.IsEnabled = CanOperate && !isWorking;
 
@@ -608,6 +634,78 @@ namespace MagiCarver
         private void ChangeEnergyFunc_Clicked(object sender, RoutedEventArgs e)
         {
             throw new NotImplementedException();
+        }
+
+        private void ToggleSelection_Clicked(object sender, RoutedEventArgs e)
+        {
+            theCanvas.EditingMode = InkCanvasEditingMode.None;
+            
+            EnableSelection((bool) ToggleSelection.IsChecked);
+        }
+
+        private void EnableSelection(bool enabled)
+        {
+            if (enabled)
+            {
+                theCanvas.MouseDown += canvas_MouseDown;
+                theCanvas.MouseUp += canvas_MouseUp;
+                theCanvas.MouseMove += canvas_MouseMove;
+            }else
+            {
+                theCanvas.MouseDown -= canvas_MouseDown;
+                theCanvas.MouseUp -= canvas_MouseUp;
+                theCanvas.MouseMove -= canvas_MouseMove;
+
+                rectangle.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void CropSelection_Clicked(object sender, RoutedEventArgs e)
+        {
+            ParameterizedThreadStart starter = LoadFile;
+            new Thread(starter).Start(Utilities.CropImage(TheImage.Bitmap, new Rectangle((int)x, (int)y, (int) rectangle.Height, (int) rectangle.Width)));   
+        }
+
+        private void canvas_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            //Set the start point
+            startDrag = e.GetPosition(theCanvas);
+            //Move the selection marquee on top of all other objects in canvas
+            Panel.SetZIndex(rectangle, theCanvas.Children.Count);
+            //Capture the mouse
+            if (!theCanvas.IsMouseCaptured)
+                theCanvas.CaptureMouse();
+            theCanvas.Cursor = Cursors.Cross;
+        }
+
+        private void canvas_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            //Release the mouse
+            if (theCanvas.IsMouseCaptured)
+                theCanvas.ReleaseMouseCapture();
+            theCanvas.Cursor = Cursors.Arrow;
+        }
+
+        private void canvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (theCanvas.IsMouseCaptured)
+            {
+                Point currentPoint = e.GetPosition(theCanvas);
+
+                //Calculate the top left corner of the rectangle 
+                //regardless of drag direction
+                 x = startDrag.X < currentPoint.X ? startDrag.X : currentPoint.X;
+                 y = startDrag.Y < currentPoint.Y ? startDrag.Y : currentPoint.Y;
+
+                if (rectangle.Visibility == Visibility.Hidden)
+                    rectangle.Visibility = Visibility.Visible;
+
+                //Move the rectangle to proper place
+                rectangle.RenderTransform = new TranslateTransform(x, y);
+                //Set its size
+                rectangle.Width = Math.Abs(e.GetPosition(theCanvas).X - startDrag.X);
+                rectangle.Height = Math.Abs(e.GetPosition(theCanvas).Y - startDrag.Y);
+            }
         }
     }
 }

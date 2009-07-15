@@ -239,6 +239,8 @@ namespace MagiCarver
         {
             int factor = k > CacheLimit ? k : CacheLimit;
 
+            Console.WriteLine(k);
+
             // Refresh the cache if last operation was enlargement
             if (LastAction == Constants.ActionType.ENLARGE)
             {
