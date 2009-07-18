@@ -197,21 +197,29 @@
                        Visibility="Hidden" x:Name="rectangle" Width="50" Height="50" 
                        StrokeDashOffset="0" StrokeThickness="1" RadiusX="0" RadiusY="0"
                        Canvas.Left="0" Canvas.Top="0">
-                <Rectangle.Triggers>
-                    <EventTrigger RoutedEvent="Loaded">
-                        <BeginStoryboard>
-                            <Storyboard>
-                                <DoubleAnimationUsingKeyFrames BeginTime="00:00:00" 
-                               Storyboard.TargetName="rectangle" 
-                               Storyboard.TargetProperty="(Shape.StrokeDashOffset)" 
-                               RepeatBehavior="Forever">
-                                    <SplineDoubleKeyFrame KeyTime="00:00:00" Value="0"/>
-                                    <SplineDoubleKeyFrame KeyTime="00:00:00.5000000" Value="10"/>
-                                </DoubleAnimationUsingKeyFrames>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </EventTrigger>
-                </Rectangle.Triggers>
+                <Rectangle.Style>
+                    <Style>
+                        <Style.Triggers>
+                            <Trigger Property="Rectangle.Visibility" Value="Visible">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="RunningAntsBoard">
+                                        <Storyboard>
+                                            <DoubleAnimationUsingKeyFrames BeginTime="00:00:00" 
+                                               Storyboard.TargetProperty="(Shape.StrokeDashOffset)" 
+                                               RepeatBehavior="Forever">
+                                                <SplineDoubleKeyFrame KeyTime="00:00:00" Value="0"/>
+                                                <SplineDoubleKeyFrame KeyTime="00:00:00.5000000" Value="10"/>
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="RunningAntsBoard"/>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Rectangle.Style>
             </Rectangle>
             <Image x:Name="theImage"/>
             <Thumb Name="myThumb" InkCanvas.Left="85" InkCanvas.Top="85"
