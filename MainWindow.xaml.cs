@@ -567,11 +567,14 @@ namespace MagiCarver
             Size size = TheImage.ImageSize;
 
             txtResolution.Text = size.Width + " x " + size.Height;
+
             if (bitmapName != null)
             {
                 Title = Constants.TITLE + " - " + bitmapName;
-                //Width = bitmap.Width;
-                //Height = bitmap.Height + theStatusBar.ActualHeight + theMenu.ActualHeight + theToolbar.ActualHeight;
+            }
+
+            if (bitmap != null)
+            {
                 theCanvas.Height = bitmap.Height;
                 theCanvas.Width = bitmap.Width;
                 InkCanvas.SetLeft(myThumb, bitmap.Width - myThumb.Width);
@@ -670,6 +673,7 @@ namespace MagiCarver
         {
             ParameterizedThreadStart starter = LoadFile;
             new Thread(starter).Start(Utilities.CropImage(TheImage.Bitmap, new Rectangle((int)x, (int)y, (int) rectangle.Width, (int) rectangle.Height)));   
+            EnableSelection(false);
         }
 
         private void canvas_MouseDown(object sender, MouseButtonEventArgs e)
