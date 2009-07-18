@@ -4,6 +4,8 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Color=System.Drawing.Color;
+using PixelFormat=System.Drawing.Imaging.PixelFormat;
 using Rectangle=System.Windows.Shapes.Rectangle;
 
 namespace MagiCarver
@@ -33,7 +35,11 @@ namespace MagiCarver
 
         public static Image CropImage(Bitmap bmp, System.Drawing.Rectangle cropArea)
         {
-            return bmp.Clone(cropArea, bmp.PixelFormat);
+            Bitmap newBmp = bmp.Clone(cropArea, PixelFormat.DontCare);
+
+            bmp.Dispose();
+
+            return newBmp;
         }
 
         public static byte GetPixel(BitmapData bitmapData, Size size, int x, int y)

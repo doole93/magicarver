@@ -140,6 +140,11 @@ namespace MagiCarver
 
         private void LoadFile(object openFile)
         {
+            if (TheImage != null)
+            {
+                TheImage.Dispose();
+            }
+
             Bitmap bitmap = null;
 
             if (openFile != null)
@@ -164,7 +169,6 @@ namespace MagiCarver
             if (bitmap != null)
             {
                 TheImage = new SeamImage(bitmap, new Prewitt());
-
 
                 Dispatcher.Invoke((VoidDelegate)delegate { CanOperate = false; }, null);
 
@@ -558,6 +562,8 @@ namespace MagiCarver
             theImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(),IntPtr.Zero,
                 Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(bitmap.Width, bitmap.Height));
 
+            theImage.Source.Freeze();
+
             Size size = TheImage.ImageSize;
 
             txtResolution.Text = size.Width + " x " + size.Height;
@@ -663,7 +669,7 @@ namespace MagiCarver
         private void CropSelection_Clicked(object sender, RoutedEventArgs e)
         {
             ParameterizedThreadStart starter = LoadFile;
-            new Thread(starter).Start(Utilities.CropImage(TheImage.Bitmap, new Rectangle((int)x, (int)y, (int) rectangle.Height, (int) rectangle.Width)));   
+            new Thread(starter).Start(Utilities.CropImage(TheImage.Bitmap, new Rectangle((int)x, (int)y, (int) rectangle.Width, (int) rectangle.Height)));   
         }
 
         private void canvas_MouseDown(object sender, MouseButtonEventArgs e)
