@@ -511,6 +511,7 @@ namespace MagiCarver
 
 
             // Set the new bitmap
+            _bitmap.Dispose();
             _bitmap = newBitmap;
             BitData = newBmd;
 
@@ -689,6 +690,7 @@ namespace MagiCarver
             }
 
 
+            _bitmap.Dispose();
             _bitmap = newBitmap;
             BitData = newBmd;
 
@@ -763,6 +765,11 @@ namespace MagiCarver
             if (Dirty)
             {
                 InvalidateAndRefresh(Constants.Direction.BOTH, 0);
+            }
+
+            if (_energyMapBitmap != null)
+            {
+                _energyMapBitmap.Dispose();
             }
 
             _energyMapBitmap = new Bitmap(_bitmap.Width, _bitmap.Height, PixelFormat.Format24bppRgb);
@@ -1273,6 +1280,32 @@ namespace MagiCarver
         public void SetCacheLimit(int newLimit)
         {
             CacheLimit = newLimit;
+        }
+
+        public void Dispose()
+        {
+            if (_bitmap != null)
+            {
+                _bitmap.Dispose();
+            }
+
+            if (_energyMapBitmap != null)
+            {
+                _energyMapBitmap.Dispose();
+            }
+
+            if (OldBitmap != null)
+            {
+                OldBitmap.Dispose();
+            }
+
+            ImageChanged = null;
+            OperationCompleted = null;
+            ColorSeam = null;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
     }
 }
