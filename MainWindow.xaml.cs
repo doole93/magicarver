@@ -44,6 +44,7 @@ namespace MagiCarver
         public  DependencyProperty  CanOperateProperty;
         private int                 NumSeamsToCarveOrAdd { get; set; }
         private Point               startDrag { get; set; }
+        private Constants.EnergyFunctions EnergyFunction { get; set; }
 
         private double x, y;
 
@@ -75,6 +76,7 @@ namespace MagiCarver
             Direction = Constants.Direction.VERTICAL;
             PaintSeam = false;
             NumSeamsToCarveOrAdd = 20;
+            EnergyFunction = Constants.EnergyFunctions.SOBEL;
 
             FadeControl(this, true);
         }
@@ -168,7 +170,7 @@ namespace MagiCarver
 
             if (bitmap != null)
             {
-                TheImage = new SeamImage(bitmap, new Sobel());
+                TheImage = new SeamImage(bitmap, EnergyFunction);
 
                 Dispatcher.Invoke((VoidDelegate)delegate { CanOperate = false; }, null);
 
@@ -641,11 +643,18 @@ namespace MagiCarver
 
         private void ChangeEnergyFunc_Clicked(object sender, RoutedEventArgs e)
         {
+            EnergyFunction = (Constants.EnergyFunctions)Enum.Parse(typeof(Constants.EnergyFunctions), ((MenuItem)sender).Header.ToString().ToUpper());
+
+            foreach (MenuItem menuItem in ((MenuItem)((MenuItem)sender).Parent).Items)
+            {
+                menuItem.IsChecked = menuItem == sender;
+            }
+
             if (TheImage != null)
             {
                 WorkInProgress(true);
                 CanOperate = false;
-                TheImage.ChangeEnergyFunc((Constants.EnergyFunctions)Enum.Parse(typeof(Constants.EnergyFunctions), ((Button)sender).Content.ToString()));
+                TheImage.ChangeEnergyFunc(EnergyFunction, true);
                 WorkInProgress(false); 
             }
         }

@@ -119,9 +119,9 @@ namespace MagiCarver
 
         #region CTors
 
-        public SeamImage(Bitmap bitmap, EnergyFunction energyFunction)
+        public SeamImage(Bitmap bitmap, Constants.EnergyFunctions energyFunction)
         {
-            EnergyFunction = energyFunction;
+            ChangeEnergyFunc(energyFunction, false);
 
             Bitmap = bitmap;
 
@@ -1308,38 +1308,30 @@ namespace MagiCarver
             GC.Collect();
         }
 
-        public void ChangeEnergyFunc(Constants.EnergyFunctions funcName)
+        public void ChangeEnergyFunc(Constants.EnergyFunctions funcName, bool recompute)
         {
             switch (funcName)
             {
                 case Constants.EnergyFunctions.SOBEL:
+                    EnergyFunction = new Sobel();
                     break;
                 case Constants.EnergyFunctions.PREWITT:
+                    EnergyFunction = new Prewitt();
                     break;
                 case Constants.EnergyFunctions.ROBERTS:
+                    EnergyFunction = new Roberts();
                     break;
                 case Constants.EnergyFunctions.HOG:
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("funcName");
             }
-            if (funcName == "Prewitt")
+
+            if (recompute)
             {
-                EnergyFunction = new Prewitt();
-            }else if (funcName == "Roberts")
-            {
-                EnergyFunction = new Roberts();
-            }else if (funcName == "Sobel")
-            {
-                EnergyFunction = new Sobel();
-            }else
-            {
-                
+                SeamFunction.EnergyFunction = EnergyFunction;
+                RecomputeEntireEnergy();
             }
-
-            SeamFunction.EnergyFunction = EnergyFunction;
-
-            RecomputeEntireEnergy();
         }
     }
 }
