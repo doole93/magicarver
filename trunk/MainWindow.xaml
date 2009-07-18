@@ -62,8 +62,8 @@
                 </MenuItem>
                 <MenuItem Header="_Energy Function">
                     <MenuItem x:Name="menuItemSobelFnc" Header="Sobel" IsCheckable="True" IsChecked="True"  Tag="0" IsEnabled="False" Click="ChangeEnergyFunc_Clicked"/>
-                    <MenuItem x:Name="menuItemRobertsFunc" Header="Roberts" IsCheckable="True" Tag="1" IsEnabled="False" Click="ChangeMapView_Clicked"/>
-                    <MenuItem x:Name="menuItemPrewittFunc" Header="Prewitt" Tag="2" IsCheckable="True" IsEnabled="False" Click="ChangeMapView_Clicked"/>
+                    <MenuItem x:Name="menuItemRobertsFunc" Header="Roberts" IsCheckable="True" Tag="1" IsEnabled="False" Click="ChangeEnergyFunc_Clicked"/>
+                    <MenuItem x:Name="menuItemPrewittFunc" Header="Prewitt" Tag="2" IsCheckable="True" IsEnabled="False" Click="ChangeEnergyFunc_Clicked"/>
                 </MenuItem>
                 <MenuItem x:Name="menuItemPaintSeam" Header="_Paint Seam" IsEnabled="False" IsCheckable="True" IsChecked="False" Click="PaintSeam_Clicked"/>
                 <MenuItem x:Name="menuItemCarve" Header="_Carve Seam" FontWeight="bold" IsEnabled="False" Click="Carve_Clicked"/>
