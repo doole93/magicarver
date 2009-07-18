@@ -573,14 +573,10 @@ namespace MagiCarver
                 Title = Constants.TITLE + " - " + bitmapName;
             }
 
-            if (bitmap != null)
-            {
-                theCanvas.Height = bitmap.Height;
-                theCanvas.Width = bitmap.Width;
-                InkCanvas.SetLeft(myThumb, bitmap.Width - myThumb.Width);
-                InkCanvas.SetTop(myThumb, bitmap.Height - myThumb.Height);
-            }
-
+            theCanvas.Height = bitmap.Height;
+            theCanvas.Width = bitmap.Width;
+            InkCanvas.SetLeft(myThumb, bitmap.Width - myThumb.Width);
+            InkCanvas.SetTop(myThumb, bitmap.Height - myThumb.Height);
         }
 
         private void WorkInProgress(bool isWorking)
