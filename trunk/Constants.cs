@@ -23,6 +23,14 @@
 
         #region Enums
 
+        public enum EnergyFunctions
+        {
+            SOBEL,
+            PREWITT,
+            ROBERTS,
+            HOG
+        } ;
+
         public enum Direction
         {
             VERTICAL,

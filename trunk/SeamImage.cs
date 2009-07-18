@@ -1307,5 +1307,39 @@ namespace MagiCarver
             GC.WaitForPendingFinalizers();
             GC.Collect();
         }
+
+        public void ChangeEnergyFunc(Constants.EnergyFunctions funcName)
+        {
+            switch (funcName)
+            {
+                case Constants.EnergyFunctions.SOBEL:
+                    break;
+                case Constants.EnergyFunctions.PREWITT:
+                    break;
+                case Constants.EnergyFunctions.ROBERTS:
+                    break;
+                case Constants.EnergyFunctions.HOG:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("funcName");
+            }
+            if (funcName == "Prewitt")
+            {
+                EnergyFunction = new Prewitt();
+            }else if (funcName == "Roberts")
+            {
+                EnergyFunction = new Roberts();
+            }else if (funcName == "Sobel")
+            {
+                EnergyFunction = new Sobel();
+            }else
+            {
+                
+            }
+
+            SeamFunction.EnergyFunction = EnergyFunction;
+
+            RecomputeEntireEnergy();
+        }
     }
 }

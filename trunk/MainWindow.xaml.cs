@@ -168,7 +168,7 @@ namespace MagiCarver
 
             if (bitmap != null)
             {
-                TheImage = new SeamImage(bitmap, new Prewitt());
+                TheImage = new SeamImage(bitmap, new Sobel());
 
                 Dispatcher.Invoke((VoidDelegate)delegate { CanOperate = false; }, null);
 
@@ -586,6 +586,9 @@ namespace MagiCarver
             menuItemEnergyMap.IsEnabled = !isWorking;
             menuItemNormal.IsEnabled = !isWorking;
             menuItemSaveImage.IsEnabled = !isWorking;
+            menuItemPrewittFunc.IsEnabled = !isWorking;
+            menuItemSobelFnc.IsEnabled = !isWorking;
+            menuItemRobertsFunc.IsEnabled = !isWorking;
             ToggleHighEng.IsEnabled = !isWorking;
             ToggleLowEng.IsEnabled = !isWorking;
             ToggleLowEng.IsChecked = false;
@@ -638,7 +641,13 @@ namespace MagiCarver
 
         private void ChangeEnergyFunc_Clicked(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
+            if (TheImage != null)
+            {
+                WorkInProgress(true);
+                CanOperate = false;
+                TheImage.ChangeEnergyFunc((Constants.EnergyFunctions)Enum.Parse(typeof(Constants.EnergyFunctions), ((Button)sender).Content.ToString()));
+                WorkInProgress(false); 
+            }
         }
 
         private void ToggleSelection_Clicked(object sender, RoutedEventArgs e)
