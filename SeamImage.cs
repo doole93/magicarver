@@ -511,7 +511,6 @@ namespace MagiCarver
 
 
             // Set the new bitmap
-            _bitmap.Dispose();
             _bitmap = newBitmap;
             BitData = newBmd;
 
@@ -690,7 +689,6 @@ namespace MagiCarver
             }
 
 
-            _bitmap.Dispose();
             _bitmap = newBitmap;
             BitData = newBmd;
 
