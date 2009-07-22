@@ -486,6 +486,8 @@ namespace MagiCarver
                                             yChange);
                 }
 
+                EnableSelection(false);
+
                 if (xChange < 0 && xadjust > 0)
                 {
                     WorkInProgress(true);
