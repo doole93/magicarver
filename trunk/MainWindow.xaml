@@ -56,7 +56,7 @@
                         </WrapPanel>
                         <Label Grid.Row="1" Content="Real Time"/>
                         <Slider ValueChanged="cacheSlider_ValueChanged" Value="{Binding ElementName=main, Path=TheImage.CacheLimit}" Grid.Row="2" IsEnabled="False" IsSnapToTickEnabled="True" x:Name="cacheSlider" MinHeight="100" Orientation="Vertical" IsDirectionReversed="True" Minimum="0" AutoToolTipPlacement="BottomRight" TickPlacement="TopLeft"/>
-                        <Label Grid.Row="3" Content="{Binding ElementName=cacheSlider, Path=Maximum}"/>
+                        <Label Grid.Row="3" Content="Precached"/>
                         <Button Grid.Row="4" x:Name="BtnCacheApply" IsEnabled="False" Content="Apply" Click="CacheLimitButton_Clicked"/>
                     </Grid>
                 </MenuItem>
@@ -72,8 +72,8 @@
             <MenuItem Header="_View">
                 <MenuItem x:Name="menuItemNormal" Header="_Normal" IsCheckable="True" Tag="0" IsEnabled="False" Click="ChangeMapView_Clicked"/>
                 <MenuItem x:Name="menuItemEnergyMap" Header="_Energy Map" IsCheckable="True" Tag="1" IsEnabled="False" Click="ChangeMapView_Clicked"/>
-                <MenuItem x:Name="menuItemHorizontalIdxMap" Header="_Horizontal Index Map" Tag="2" IsCheckable="True" IsEnabled="False" Click="ChangeMapView_Clicked"/>
-                <MenuItem x:Name="menuItemVerticalIdxMap" Header="_Vertical Index Map" Tag="3" IsCheckable="True" IsEnabled="False" Click="ChangeMapView_Clicked"/>
+                <MenuItem x:Name="menuItemHorizontalIdxMap" Header="_Horizontal Index Map" Tag="3" IsCheckable="True" IsEnabled="False" Click="ChangeMapView_Clicked"/>
+                <MenuItem x:Name="menuItemVerticalIdxMap" Header="_Vertical Index Map" Tag="2" IsCheckable="True" IsEnabled="False" Click="ChangeMapView_Clicked"/>
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem x:Name="menuItemAbout" Header="_About" Click="About_Clicked"/>
