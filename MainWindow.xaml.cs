@@ -241,6 +241,14 @@ namespace MagiCarver
                                     bitmap = TheImage.Bitmap;
                                     SetCacheSlider();
                                     break;
+                                case Constants.Maps.HORIZONTAL_INDEX_MAP:
+                                    bitmap = TheImage.HorizontalIndexMapBitmap;
+                                    SetCacheSlider();
+                                    break;
+                                case Constants.Maps.VERTICAL_INDEX_MAP:
+                                    bitmap = TheImage.VerticalIndexMapBitmap;
+                                    SetCacheSlider();
+                                    break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
                             }
@@ -589,6 +597,8 @@ namespace MagiCarver
             theCanvas.IsEnabled = !isWorking;
             menuItemEnergyMap.IsEnabled = !isWorking;
             menuItemNormal.IsEnabled = !isWorking;
+            menuItemHorizontalIdxMap.IsEnabled = CanOperate && !isWorking;
+            menuItemVerticalIdxMap.IsEnabled = CanOperate && !isWorking;
             menuItemSaveImage.IsEnabled = !isWorking;
             menuItemPrewittFunc.IsEnabled = !isWorking;
             menuItemSobelFnc.IsEnabled = !isWorking;

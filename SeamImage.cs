@@ -31,7 +31,7 @@ namespace MagiCarver
 
         // The bitmap which is coherent with the caches
         private Bitmap           OldBitmap            { get; set; }
-        private Size            OldSize                 { get; set; }
+        private Size             OldSize                 { get; set; }
 
         // Index maps
         private int[,]           HorizontalIndexMap   { get; set; }
@@ -70,7 +70,6 @@ namespace MagiCarver
         private Constants.Direction LastDirection { get; set; }
 
         // User input
-        private List<KeyValuePair<Point, Constants.EnergyType>> UserEnergy { get; set; }
 
         public Size ImageSize
         {
@@ -87,6 +86,22 @@ namespace MagiCarver
                 GenerateEnergyMapBitmap();
 
                 return _energyMapBitmap;
+            }
+        }
+
+        public Bitmap HorizontalIndexMapBitmap
+        {
+            get
+            {
+                return CreateIndexMapBitmap(HorizontalIndexMap);
+            }
+        }
+
+        public Bitmap VerticalIndexMapBitmap
+        {
+            get
+            {
+                return CreateIndexMapBitmap(VerticalIndexMap);
             }
         }
 
@@ -167,6 +182,58 @@ namespace MagiCarver
 
         #region Other Methods
 
+        private Bitmap CreateIndexMapBitmap(int[,] indexMap)
+        {
+            Bitmap bitmap = new Bitmap(ImageSize.Width, ImageSize.Height);
+
+            BitmapData bitData = bitmap.LockBits(new Rectangle(0, 0, ImageSize.Width, ImageSize.Height),
+                                ImageLockMode.WriteOnly, _bitmap.PixelFormat);
+
+            int maxVal = int.MinValue;
+
+            unsafe
+            {
+                for (int i = 0; i < ImageSize.Height; ++i)
+                {
+                    for (int j = 0; j < ImageSize.Width; ++j)
+                    {
+                        if (maxVal < indexMap[j, i])
+                        {
+                            maxVal = indexMap[j, i];
+                        }
+                    }
+                }
+            }
+
+            unsafe
+            {
+                byte* bitmapScan = (byte*) bitData.Scan0;
+
+                for (int i = 0; i < ImageSize.Height; ++i)
+                {
+                    for (int j = 0; j < ImageSize.Width; ++j)
+                    {
+                        byte val = (byte) ((double) indexMap[j, i]*((double) ((double) 255/(double) maxVal)));
+
+                        if (val < 255 / 3)
+                        {
+                            bitmapScan[i * bitData.Stride + j * 3] = val;
+                        }else if (val < 255 / 2)
+                        {
+                            bitmapScan[i*bitData.Stride + j*3 + 1] = val;
+                        }else
+                        {
+                            bitmapScan[i*bitData.Stride + j*3 + 2] = val;
+                        }
+                    }
+                }
+            }
+
+            bitmap.UnlockBits(bitData);
+
+            return bitmap;
+        }
+
         private void RecomputeEntireEnergy()
         {
             BitData = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
@@ -237,7 +304,10 @@ namespace MagiCarver
         /// <param name="k"></param>
         public void Carve(Constants.Direction direction, bool paintSeam, int k)
         {
-            int factor = k > CacheLimit ? k : CacheLimit;
+            int newCache = (CacheLimit == ImageSize.Width || CacheLimit == ImageSize.Height)
+                ? (direction == Constants.Direction.VERTICAL ? ImageSize.Width : ImageSize.Height) : CacheLimit;
+
+            int factor = k > newCache ? k : newCache;
 
             Console.WriteLine(k);
 
@@ -332,7 +402,10 @@ namespace MagiCarver
         {
             lock (lockObject)
             {
-                int factor = k > CacheLimit ? k : CacheLimit;
+                int newCache = (CacheLimit == ImageSize.Width || CacheLimit == ImageSize.Height)
+                    ? (direction == Constants.Direction.VERTICAL ? ImageSize.Width : ImageSize.Height) : CacheLimit;
+
+            int factor = k > newCache ? k : newCache;
 
                 if (direction == Constants.Direction.VERTICAL && factor > ImageSize.Width)
                 {
@@ -793,8 +866,6 @@ namespace MagiCarver
         /// <param name="strokes"></param>
         public void SetEnergy(StrokeCollection strokes)
         {
-            UserEnergy = new List<KeyValuePair<Point, Constants.EnergyType>>();
-
             Constants.EnergyType[,] userEnergy = new Constants.EnergyType[CurrentWidth, CurrentHeight];
             
             Parallel.ForEach(strokes, delegate(Stroke stroke)
@@ -887,12 +958,20 @@ namespace MagiCarver
 
             Thread tHorizontal = new Thread(delegate()
                                                 {
-                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(factor, ImageSize.Height));
+                                                    int newFactor = (factor == ImageSize.Height ||
+                                                                     factor == ImageSize.Width
+                                                                         ? ImageSize.Height
+                                                                         : factor);
+                                                    HorizontalSeams = GetKBestSeams(Constants.Direction.HORIZONTAL, Math.Min(newFactor, ImageSize.Height));
                                                 });
 
             Thread tVertical = new Thread(delegate()
                                               {
-                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(factor, ImageSize.Width));
+                                                  int newFactor = (factor == ImageSize.Height ||
+                                                                    factor == ImageSize.Width
+                                                                        ? ImageSize.Width
+                                                                        : factor);
+                                                  VerticalSeams = GetKBestSeams(Constants.Direction.VERTICAL, Math.Min(newFactor, ImageSize.Width));
                                               });
 
             if (direction != Constants.Direction.VERTICAL)

@@ -1,6 +1,6 @@
 ﻿namespace MagiCarver
 {
-    public class Constants
+    public static class Constants
     {
         #region Strings
 
@@ -50,7 +50,9 @@
         public enum Maps
         {
             NORMAL,
-            ENERGY
+            ENERGY,
+            VERTICAL_INDEX_MAP,
+            HORIZONTAL_INDEX_MAP
         } ;
 
         public enum EnergyType
