@@ -4,7 +4,7 @@
     {
         #region Strings
 
-        public const string TITLE = "MagiCarver 0.9";
+        public const string TITLE = "MagiCarver 1.0";
         public const string TEXT_READY = "Ready";
         public const string TEXT_WORKING = "Working...";
         public const string TEXT_REFRESHING_CACHE = "Refreshing cache...";

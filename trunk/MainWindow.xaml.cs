@@ -78,6 +78,8 @@ namespace MagiCarver
             NumSeamsToCarveOrAdd = 20;
             EnergyFunction = Constants.EnergyFunctions.SOBEL;
 
+            Thread.Sleep(1000);
+
             FadeControl(this, true);
         }
 
