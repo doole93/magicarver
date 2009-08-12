@@ -6,7 +6,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{20B9D49E-D57C-45EE-8123-16B6C2715F56}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MagiCarver</RootNamespace>
     <AssemblyName>MagiCarver</AssemblyName>
@@ -156,7 +156,28 @@
     <Resource Include="Resources\crop.png" />
     <Resource Include="Resources\selection.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <SplashScreen Include="Resources\splash.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="book_res\01.png" />
+    <Resource Include="book_res\02.png" />
+    <Resource Include="book_res\ClassDiagram.png" />
+    <Resource Include="book_res\Horses.jpg" />
+    <Resource Include="book_res\Horses_Roberts.png" />
+    <Resource Include="book_res\Horses_Roberts_60_Width.png" />
+    <Resource Include="book_res\Horses_Sobel.png" />
+    <Resource Include="book_res\Horses_Sobel_60_Width.png" />
+    <Resource Include="book_res\Original.jpg" />
+    <Resource Include="book_res\Original_Width_Height_Optimally_Reduced.png" />
+    <Resource Include="book_res\Original_Width_Reduced.png" />
+    <Resource Include="book_res\Original_Width_Reduced_even_More.png" />
+    <Resource Include="book_res\Original_Width_Reduced_More.png" />
+    <Resource Include="book_res\Prewitt.png" />
+    <Resource Include="book_res\Roberts.png" />
+    <Resource Include="book_res\Sobel.png" />
+    <Resource Include="book_res\Stretch.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -38,6 +38,7 @@ namespace MagiCarver.EnergyFunctions
             });
         }
 
+        //TODO: Vertical shrink has changed for better. Need to reflect on horizontal.
         /// <summary>
         /// Refreshes the pixel's energy
         /// </summary>
@@ -56,7 +57,6 @@ namespace MagiCarver.EnergyFunctions
                     Parallel.For(0, newSize.Height, delegate(int i)
                     {
                         int skipCount = 0;
-
                         for (int j = 0; j < newSize.Width; ++j)
                         {
                             if (EnergyMap[j + skipCount, i] == -1)
@@ -67,10 +67,16 @@ namespace MagiCarver.EnergyFunctions
                                                            bitmapData.Height));
                                 if (j > 0)
                                 {
-                                    newEnergyMap[j - 1, i] =
-                                        GetPixelEnergy(bitmapData, j - 1, i,
-                                                       new Size(bitmapData.Width,
-                                                                bitmapData.Height));
+                                    if (EnergyMap[j - 1 + skipCount, i] != Constants.MIN_ENERGY && EnergyMap[j - 1 + skipCount, i] != Constants.MAX_ENERGY)
+                                    {
+                                        newEnergyMap[j - 1, i] =
+                                            GetPixelEnergy(bitmapData, j - 1, i,
+                                            new Size(bitmapData.Width,
+                                                bitmapData.Height));  
+                                    }else
+                                    {
+                                        newEnergyMap[j - 1, i] = EnergyMap[j - 1 + skipCount, i];
+                                    }
                                 }
 
                                 while (j + skipCount < oldSize.Width && EnergyMap[j + skipCount, i] == -1)
@@ -78,10 +84,31 @@ namespace MagiCarver.EnergyFunctions
                                     skipCount++;
                                 }
 
+                                //if (j + 1 < newSize.Width)
+                                //{
+                                //    if (EnergyMap[j + skipCount, i] != Constants.MIN_ENERGY && EnergyMap[j + skipCount, i] != Constants.MAX_ENERGY)
+                                //    {
+                                //        newEnergyMap[j + 1, i] = GetPixelEnergy(bitmapData, j + 1, i,
+                                //            new Size(bitmapData.Width,
+                                //                bitmapData.Height)); 
+                                //    }else
+                                //    {
+                                //        newEnergyMap[j + 1, i] = EnergyMap[j + skipCount, i];
+                                //    }
+                                //}
                             }
                             else
                             {
-                                newEnergyMap[j, i] = EnergyMap[j + skipCount, i];
+                                if (EnergyMap[j + skipCount, i] != Constants.MIN_ENERGY && EnergyMap[j + skipCount, i] != Constants.MAX_ENERGY)
+                                {
+                                    newEnergyMap[j, i] = GetPixelEnergy(bitmapData, j, i,
+                                            new Size(bitmapData.Width,
+                                                bitmapData.Height)); 
+                                }else
+                                {
+                                    newEnergyMap[j, i] = EnergyMap[j + skipCount, i];
+                                }
+                                
                             }
                         }
                     });
@@ -102,10 +129,17 @@ namespace MagiCarver.EnergyFunctions
                                                            bitmapData.Height));
                                 if (j > 0)
                                 {
-                                    newEnergyMap[i, j - 1] =
-                                        GetPixelEnergy(bitmapData, i, j - 1,
-                                                       new Size(bitmapData.Width,
-                                                                bitmapData.Height));
+                                    if (EnergyMap[i, j - 1 + skipCount] != Constants.MIN_ENERGY && EnergyMap[i, j - 1 + skipCount] != Constants.MAX_ENERGY)
+                                    {
+                                        newEnergyMap[i, j - 1] =
+                                            GetPixelEnergy(bitmapData, i, j - 1,
+                                            new Size(bitmapData.Width,
+                                                bitmapData.Height));
+                                    }
+                                    else
+                                    {
+                                        newEnergyMap[i, j - 1] = EnergyMap[i, j - 1 + skipCount];
+                                    }
                                 }
 
                                 while (j + skipCount < oldSize.Height && EnergyMap[i, j + skipCount] == -1)
@@ -116,7 +150,16 @@ namespace MagiCarver.EnergyFunctions
                             }
                             else
                             {
-                                newEnergyMap[i, j] = EnergyMap[i, j + skipCount];
+                                if (EnergyMap[i, j + skipCount] != Constants.MIN_ENERGY && EnergyMap[i, j + skipCount] != Constants.MAX_ENERGY)
+                                {
+                                    newEnergyMap[i, j] = GetPixelEnergy(bitmapData, i, j,
+                                            new Size(bitmapData.Width,
+                                                bitmapData.Height));
+                                }
+                                else
+                                {
+                                    newEnergyMap[i, j] = EnergyMap[i, j + skipCount];
+                                }
                             }
                         }
                     });
